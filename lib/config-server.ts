@@ -46,7 +46,13 @@ export async function readConfig(): Promise<AppConfig> {
 }
 
 export async function writeConfig(config: AppConfig): Promise<void> {
-  const supabase = getSupabaseForConfig()
+  // Usa as credenciais do próprio config (vindas do formulário) para conectar ao Supabase
+  const url = config.supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const key = config.supabaseAnonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+  if (!url || !key) throw new Error('URL e Anon Key do Supabase são obrigatórios.')
+
+  const supabase = createClient(url, key)
 
   const entries = [
     { chave: 'uazapi_url', valor: config.uazapiUrl },

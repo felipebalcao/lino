@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readConfig } from '@/lib/config-server'
 
 export async function POST(request: NextRequest) {
-  const config = readConfig()
+  const config = await readConfig()
   const uazapiUrl = config.uazapiUrl
   const uazapiToken = config.uazapiToken
 

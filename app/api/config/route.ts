@@ -3,8 +3,7 @@ import { readConfig, writeConfig } from '@/lib/config-server'
 import { isMasterAuth } from '@/lib/master-auth'
 
 export async function GET() {
-  const config = readConfig()
-  // Não expõe o token da UAZAPI pro cliente
+  const config = await readConfig()
   return NextResponse.json({
     supabaseUrl: config.supabaseUrl,
     supabaseAnonKey: config.supabaseAnonKey,
@@ -21,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
 
-  writeConfig({
+  await writeConfig({
     supabaseUrl: body.supabaseUrl?.trim() || '',
     supabaseAnonKey: body.supabaseAnonKey?.trim() || '',
     uazapiUrl: body.uazapiUrl?.trim() || '',

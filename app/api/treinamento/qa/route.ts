@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { readConfig } from '@/lib/config-server'
+import { getSupabaseEnv } from '@/lib/config-server'
 
 function getSupabase() {
-  const { supabaseUrl, supabaseAnonKey } = readConfig()
+  const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 

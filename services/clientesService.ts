@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { Cliente, ClienteComUltimaMensagem } from '@/types'
+import { Cliente, ClienteComUltimaMensagem, MensagemWhatsapp } from '@/types'
 
 export async function getTotalClientes(): Promise<number> {
   const { count, error } = await supabase
@@ -114,7 +114,7 @@ export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMe
   if (errMsg) console.warn('[mensagens_whatsapp] erro ao buscar mensagens:', errMsg.message)
 
   // Pegar a última mensagem por numero_cliente
-  const ultimaPorTelefone: Record<string, typeof mensagens[0]> = {}
+  const ultimaPorTelefone: Record<string, MensagemWhatsapp> = {}
   for (const msg of mensagens ?? []) {
     if (!ultimaPorTelefone[msg.numero_cliente]) {
       ultimaPorTelefone[msg.numero_cliente] = msg

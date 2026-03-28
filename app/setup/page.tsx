@@ -69,7 +69,8 @@ export default function SetupPage() {
     }
 
     if (!res.ok) {
-      setErro('Erro ao salvar configurações.')
+      const errData = await res.json().catch(() => ({}))
+      setErro(errData.error ? `Erro: ${errData.error}` : 'Erro ao salvar configurações.')
       setSalvando(false)
       return
     }

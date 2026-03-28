@@ -20,13 +20,18 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
 
-  await writeConfig({
-    supabaseUrl: body.supabaseUrl?.trim() || '',
-    supabaseAnonKey: body.supabaseAnonKey?.trim() || '',
-    uazapiUrl: body.uazapiUrl?.trim() || '',
-    uazapiToken: body.uazapiToken?.trim() || '',
-    openaiKey: body.openaiKey?.trim() || '',
-  })
+  try {
+    await writeConfig({
+      supabaseUrl: body.supabaseUrl?.trim() || '',
+      supabaseAnonKey: body.supabaseAnonKey?.trim() || '',
+      uazapiUrl: body.uazapiUrl?.trim() || '',
+      uazapiToken: body.uazapiToken?.trim() || '',
+      openaiKey: body.openaiKey?.trim() || '',
+    })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

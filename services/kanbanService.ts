@@ -82,7 +82,7 @@ export async function getContagemPorSecao(): Promise<{ nome: string; total: numb
   if (secoesRes.error) throw secoesRes.error
 
   // Deduplicar por telefone
-  const unicosPorTelefone: Record<string, Cliente> = {}
+  const unicosPorTelefone: Record<string, { telefone: string; kanban_secao_id: number | null }> = {}
   for (const c of clientesRes.data ?? []) {
     if (!c.telefone) continue
     if (!unicosPorTelefone[c.telefone]) unicosPorTelefone[c.telefone] = c

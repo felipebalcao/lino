@@ -1,0 +1,36 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { readConfig } from '@/lib/config-server'
+
+function getSupabase() {
+  const { supabaseUrl, supabaseAnonKey } = readConfig()
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
+
+export async function GET() {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('treinamento_textos')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
+}
+
+export async function POST(request: NextRequest) {
+  const { titulo, conteudo } = await request.json()
+  if (!titulo?.trim() || !conteudo?.trim()) {
+    return NextResponse.json({ error: 'Título e conteúdo são obrigatórios' }, { status: 400 })
+  }
+
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('treinamento_textos')
+    .insert({ titulo: titulo.trim(), conteudo: conteudo.trim() })
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}

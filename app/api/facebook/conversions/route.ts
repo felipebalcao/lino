@@ -34,6 +34,8 @@ interface ClientePayload {
   telefone: string
 }
 
+const EVENTOS_COM_VALOR = ['Purchase', 'InitiateCheckout', 'AddToCart']
+
 export async function POST(request: NextRequest) {
   const body = await request.json() as { clientes: ClientePayload[]; eventName: string }
   const { clientes, eventName } = body
@@ -65,12 +67,18 @@ export async function POST(request: NextRequest) {
     }
     if (ln) userData.ln = [hash(ln)]
 
-    return {
+    const event: Record<string, unknown> = {
       event_name: eventName,
       event_time: eventTime,
       action_source: 'other',
       user_data: userData,
     }
+
+    if (EVENTOS_COM_VALOR.includes(eventName)) {
+      event.custom_data = { currency: 'BRL', value: 0 }
+    }
+
+    return event
   })
 
   const payload: Record<string, unknown> = {

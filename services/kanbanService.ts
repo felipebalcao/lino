@@ -11,7 +11,7 @@ export async function getSecoes(): Promise<KanbanSecao[]> {
   return data ?? []
 }
 
-export async function criarSecao(nome: string): Promise<KanbanSecao> {
+export async function criarSecao(nome: string, facebookEvento?: string | null): Promise<KanbanSecao> {
   const { data: existentes } = await supabase
     .from('kanban_secoes')
     .select('ordem')
@@ -22,7 +22,7 @@ export async function criarSecao(nome: string): Promise<KanbanSecao> {
 
   const { data, error } = await supabase
     .from('kanban_secoes')
-    .insert({ nome: nome.trim(), ordem: proximaOrdem })
+    .insert({ nome: nome.trim(), ordem: proximaOrdem, facebook_evento: facebookEvento ?? null })
     .select()
     .single()
 

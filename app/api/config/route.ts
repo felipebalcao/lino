@@ -9,6 +9,9 @@ export async function GET() {
     supabaseAnonKey: config.supabaseAnonKey,
     uazapiUrl: config.uazapiUrl,
     hasOpenaiKey: !!config.openaiKey,
+    fbPixelId: config.fbPixelId,
+    hasFbAccessToken: !!config.fbAccessToken,
+    fbTestEventCode: config.fbTestEventCode,
     configured: !!(config.supabaseUrl && config.supabaseAnonKey),
   })
 }
@@ -27,6 +30,9 @@ export async function POST(request: NextRequest) {
       uazapiUrl: body.uazapiUrl?.trim() || '',
       uazapiToken: body.uazapiToken?.trim() || '',
       openaiKey: body.openaiKey?.trim() || '',
+      fbPixelId: body.fbPixelId?.trim() || '',
+      fbAccessToken: body.fbAccessToken?.trim() || '',
+      fbTestEventCode: body.fbTestEventCode?.trim() || '',
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # config do ambiente (dados do cliente — não versionar)
 /data/config.json
+
+.vercel
+.env*.local

@@ -6,11 +6,35 @@ import { KanbanSecao, Cliente } from '@/types'
 import Avatar from '@/components/Avatar'
 import { Plus, X, Loader2, Kanban } from 'lucide-react'
 
+const FB_EVENTOS = [
+  { value: 'Lead', label: 'Lead' },
+  { value: 'Contact', label: 'Contact' },
+  { value: 'CompleteRegistration', label: 'CompleteRegistration' },
+  { value: 'Schedule', label: 'Schedule' },
+  { value: 'SubmitApplication', label: 'SubmitApplication' },
+  { value: 'Purchase', label: 'Purchase' },
+  { value: 'InitiateCheckout', label: 'InitiateCheckout' },
+  { value: 'AddToCart', label: 'AddToCart' },
+  { value: 'ViewContent', label: 'ViewContent' },
+  { value: 'Search', label: 'Search' },
+  { value: 'CustomEvent', label: 'CustomEvent' },
+]
+
+async function enviarEventoFacebook(clientes: { nome: string; telefone: string }[], eventName: string) {
+  await fetch('/api/facebook/conversions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientes, eventName }),
+  }).catch(() => {})
+}
+
 export default function KanbanPage() {
   const [secoes, setSecoes] = useState<KanbanSecao[]>([])
   const [clientes, setClientes] = useState<Record<string, Cliente[]>>({})
   const [loading, setLoading] = useState(true)
   const [novaSecao, setNovaSecao] = useState('')
+  const [novaSecaoFb, setNovaSecaoFb] = useState(false)
+  const [novaSecaoEvento, setNovaSecaoEvento] = useState('Lead')
   const [criando, setCriando] = useState(false)
   const [mostrarInput, setMostrarInput] = useState(false)
   const [dragClienteId, setDragClienteId] = useState<number | null>(null)
@@ -39,10 +63,12 @@ export default function KanbanPage() {
     if (!novaSecao.trim()) return
     setCriando(true)
     try {
-      const nova = await criarSecao(novaSecao)
+      const nova = await criarSecao(novaSecao, novaSecaoFb ? novaSecaoEvento : null)
       setSecoes((prev) => [...prev, nova])
       setClientes((prev) => ({ ...prev, [String(nova.id)]: [] }))
       setNovaSecao('')
+      setNovaSecaoFb(false)
+      setNovaSecaoEvento('Lead')
       setMostrarInput(false)
     } finally {
       setCriando(false)
@@ -78,16 +104,20 @@ export default function KanbanPage() {
 
     const secaoId = secaoKey === 'sem_secao' ? null : Number(secaoKey)
 
+    // Encontra o cliente antes do setState para poder usar após
+    let clienteMovido: Cliente | undefined
+    for (const cols of Object.values(clientes)) {
+      const found = cols.find((c) => c.id === dragClienteId)
+      if (found) { clienteMovido = found; break }
+    }
+
     // Atualiza local otimistamente
     setClientes((prev) => {
       const novo = { ...prev }
-      let clienteMovido: Cliente | undefined
 
-      // Remove de todas as colunas
       for (const key of Object.keys(novo)) {
         const idx = novo[key].findIndex((c) => c.id === dragClienteId)
         if (idx !== -1) {
-          clienteMovido = { ...novo[key][idx], kanban_secao_id: secaoId }
           novo[key] = novo[key].filter((c) => c.id !== dragClienteId)
           break
         }
@@ -95,7 +125,7 @@ export default function KanbanPage() {
 
       if (clienteMovido) {
         if (!novo[secaoKey]) novo[secaoKey] = []
-        novo[secaoKey] = [...novo[secaoKey], clienteMovido]
+        novo[secaoKey] = [...novo[secaoKey], { ...clienteMovido, kanban_secao_id: secaoId }]
       }
 
       return novo
@@ -103,11 +133,20 @@ export default function KanbanPage() {
 
     setDragClienteId(null)
     await moverClienteParaSecao(dragClienteId, secaoId)
+
+    // Envia ao Facebook se a seção destino tem evento configurado
+    const secaoDestino = secoes.find((s) => String(s.id) === secaoKey)
+    if (secaoDestino?.facebook_evento && clienteMovido) {
+      enviarEventoFacebook(
+        [{ nome: clienteMovido.nome, telefone: clienteMovido.telefone }],
+        secaoDestino.facebook_evento,
+      )
+    }
   }
 
-  const colunas: { key: string; nome: string; secaoId?: number }[] = [
+  const colunas: { key: string; nome: string; secaoId?: number; facebookEvento?: string | null }[] = [
     { key: 'sem_secao', nome: 'Sem seção' },
-    ...secoes.map((s) => ({ key: String(s.id), nome: s.nome, secaoId: s.id })),
+    ...secoes.map((s) => ({ key: String(s.id), nome: s.nome, secaoId: s.id, facebookEvento: s.facebook_evento })),
   ]
 
   if (loading) {
@@ -131,28 +170,54 @@ export default function KanbanPage() {
 
         <div className="flex items-center gap-3">
           {mostrarInput ? (
-            <form onSubmit={handleCriarSecao} className="flex items-center gap-2">
-              <input
-                ref={inputRef}
-                value={novaSecao}
-                onChange={(e) => setNovaSecao(e.target.value)}
-                placeholder="Nome da seção..."
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 w-48"
-              />
-              <button
-                type="submit"
-                disabled={criando || !novaSecao.trim()}
-                className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                {criando ? <Loader2 size={14} className="animate-spin" /> : 'Criar'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMostrarInput(false); setNovaSecao('') }}
-                className="p-2 text-gray-400 hover:text-gray-600"
-              >
-                <X size={16} />
-              </button>
+            <form onSubmit={handleCriarSecao} className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  value={novaSecao}
+                  onChange={(e) => setNovaSecao(e.target.value)}
+                  placeholder="Nome da seção..."
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 w-48"
+                />
+                <button
+                  type="submit"
+                  disabled={criando || !novaSecao.trim()}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {criando ? <Loader2 size={14} className="animate-spin" /> : 'Criar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMostrarInput(false); setNovaSecao(''); setNovaSecaoFb(false) }}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Toggle Facebook */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={novaSecaoFb}
+                    onChange={(e) => setNovaSecaoFb(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-blue-600 font-medium">Enviar ao Facebook</span>
+                </label>
+                {novaSecaoFb && (
+                  <select
+                    value={novaSecaoEvento}
+                    onChange={(e) => setNovaSecaoEvento(e.target.value)}
+                    className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    {FB_EVENTOS.map((ev) => (
+                      <option key={ev.value} value={ev.value}>{ev.label}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </form>
           ) : (
             <button
@@ -168,7 +233,7 @@ export default function KanbanPage() {
       {/* Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-4 h-full px-8 py-6" style={{ minWidth: 'max-content' }}>
-          {colunas.map(({ key, nome, secaoId }) => {
+          {colunas.map(({ key, nome, secaoId, facebookEvento }) => {
             const cards = clientes[key] ?? []
             const isDragOver = dragSobreSecao === key
 
@@ -187,6 +252,14 @@ export default function KanbanPage() {
                     <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">
                       {cards.length}
                     </span>
+                    {facebookEvento && (
+                      <span
+                        className="text-xs bg-blue-100 text-blue-600 font-medium px-2 py-0.5 rounded-full"
+                        title={`Envia evento "${facebookEvento}" ao Facebook`}
+                      >
+                        fb: {facebookEvento}
+                      </span>
+                    )}
                   </div>
                   {secaoId && (
                     <button

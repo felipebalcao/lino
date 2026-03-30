@@ -10,6 +10,9 @@ interface ConfigForm {
   uazapiUrl: string
   uazapiToken: string
   openaiKey: string
+  fbPixelId: string
+  fbAccessToken: string
+  fbTestEventCode: string
 }
 
 export default function SetupPage() {
@@ -20,6 +23,9 @@ export default function SetupPage() {
     uazapiUrl: '',
     uazapiToken: '',
     openaiKey: '',
+    fbPixelId: '',
+    fbAccessToken: '',
+    fbTestEventCode: '',
   })
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -28,6 +34,8 @@ export default function SetupPage() {
   const [mostrarToken, setMostrarToken] = useState(false)
   const [mostrarKey, setMostrarKey] = useState(false)
   const [mostrarOpenai, setMostrarOpenai] = useState(false)
+  const [mostrarFbToken, setMostrarFbToken] = useState(false)
+  const [hasFbAccessToken, setHasFbAccessToken] = useState(false)
 
   useEffect(() => {
     // Carregar config atual
@@ -39,7 +47,10 @@ export default function SetupPage() {
           supabaseUrl: data.supabaseUrl || '',
           supabaseAnonKey: data.supabaseAnonKey || '',
           uazapiUrl: data.uazapiUrl || '',
+          fbPixelId: data.fbPixelId || '',
+          fbTestEventCode: data.fbTestEventCode || '',
         }))
+        setHasFbAccessToken(!!data.hasFbAccessToken)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -204,6 +215,63 @@ export default function SetupPage() {
                     {mostrarToken ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Facebook Conversions API */}
+          <div className="bg-white rounded-2xl p-6 shadow-xl">
+            <h2 className="font-semibold text-gray-900 text-base mb-1 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">4</span>
+              Facebook Conversions API <span className="text-xs font-normal text-gray-400 ml-1">(opcional)</span>
+            </h2>
+            <p className="text-xs text-gray-400 mb-4 ml-8">Envia eventos de conversão ao mover clientes pelo Kanban</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pixel ID</label>
+                <input
+                  type="text"
+                  value={form.fbPixelId}
+                  onChange={(e) => handleChange('fbPixelId', e.target.value)}
+                  placeholder="123456789012345"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                />
+                <p className="text-xs text-gray-400 mt-1">Events Manager → Pixel → Configurações</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Access Token</label>
+                <div className="relative">
+                  <input
+                    type={mostrarFbToken ? 'text' : 'password'}
+                    value={form.fbAccessToken}
+                    onChange={(e) => handleChange('fbAccessToken', e.target.value)}
+                    placeholder={hasFbAccessToken ? '••••••••••••••••••••••' : 'EAAxxxxxxxx...'}
+                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                  />
+                  <button type="button" onClick={() => setMostrarFbToken(!mostrarFbToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {mostrarFbToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {hasFbAccessToken && !form.fbAccessToken && (
+                  <p className="text-xs text-green-600 mt-1">Token já configurado. Preencha apenas para alterar.</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">Events Manager → Pixel → Configurações → API de Conversões</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Código de evento de teste <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.fbTestEventCode}
+                  onChange={(e) => handleChange('fbTestEventCode', e.target.value)}
+                  placeholder="TEST12345"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                />
+                <p className="text-xs text-gray-400 mt-1">Use durante testes para visualizar eventos no painel do Facebook</p>
               </div>
             </div>
           </div>

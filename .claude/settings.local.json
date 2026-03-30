@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(cmd /c \"cd C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino && npx tsc --noEmit\")",
+      "Bash(cmd /c \"git add services/kanbanService.ts && git commit -m \"\"fix: correct partial type in getContagemPorSecao to fix Vercel build\"\"\")",
+      "Bash(cmd /c \"cd \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && git add services/kanbanService.ts\")",
+      "Bash(cmd /c \"cd \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && git status\")",
+      "Bash(cmd /c \"cd /d \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && git status && git diff --name-only\")",
+      "Bash(cmd /c \"cd /d \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && npx tsc --noEmit 2>&1\")",
+      "Bash(find '/c/Users/Felipe Rios/Documents/lino' -type f \\\\\\(-name *.json -o -name *.env* \\\\\\) ! -path */node_modules/*)"
+    ]
+  }
+}

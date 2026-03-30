@@ -6,6 +6,9 @@ export interface AppConfig {
   uazapiUrl: string
   uazapiToken: string
   openaiKey: string
+  fbPixelId: string
+  fbAccessToken: string
+  fbTestEventCode: string
 }
 
 function getSupabaseForConfig() {
@@ -27,6 +30,9 @@ export async function readConfig(): Promise<AppConfig> {
   let uazapiUrl = process.env.UAZAPI_URL || ''
   let uazapiToken = process.env.UAZAPI_TOKEN || ''
   let openaiKey = process.env.OPENAI_API_KEY || ''
+  let fbPixelId = process.env.FB_PIXEL_ID || ''
+  let fbAccessToken = process.env.FB_ACCESS_TOKEN || ''
+  let fbTestEventCode = process.env.FB_TEST_EVENT_CODE || ''
 
   if (supabaseUrl && supabaseAnonKey) {
     try {
@@ -37,12 +43,15 @@ export async function readConfig(): Promise<AppConfig> {
           if (row.chave === 'uazapi_url' && row.valor) uazapiUrl = row.valor
           if (row.chave === 'uazapi_token' && row.valor) uazapiToken = row.valor
           if (row.chave === 'openai_key' && row.valor) openaiKey = row.valor
+          if (row.chave === 'fb_pixel_id' && row.valor) fbPixelId = row.valor
+          if (row.chave === 'fb_access_token' && row.valor) fbAccessToken = row.valor
+          if (row.chave === 'fb_test_event_code' && row.valor) fbTestEventCode = row.valor
         }
       }
     } catch { /* ignora */ }
   }
 
-  return { supabaseUrl, supabaseAnonKey, uazapiUrl, uazapiToken, openaiKey }
+  return { supabaseUrl, supabaseAnonKey, uazapiUrl, uazapiToken, openaiKey, fbPixelId, fbAccessToken, fbTestEventCode }
 }
 
 export async function writeConfig(config: AppConfig): Promise<void> {
@@ -58,6 +67,9 @@ export async function writeConfig(config: AppConfig): Promise<void> {
     { chave: 'uazapi_url', valor: config.uazapiUrl },
     { chave: 'uazapi_token', valor: config.uazapiToken },
     { chave: 'openai_key', valor: config.openaiKey },
+    { chave: 'fb_pixel_id', valor: config.fbPixelId },
+    { chave: 'fb_access_token', valor: config.fbAccessToken },
+    { chave: 'fb_test_event_code', valor: config.fbTestEventCode },
   ]
 
   for (const entry of entries) {

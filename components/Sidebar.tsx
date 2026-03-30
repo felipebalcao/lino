@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen, TrendingUp } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/mensagens', label: 'Mensagens', icon: MessageSquare },
   { href: '/kanban', label: 'Kanban', icon: Kanban },
+  { href: '/ads', label: 'Ads', icon: TrendingUp },
   { href: '/treinamento', label: 'Treinamento', icon: BookOpen },
 ]
 

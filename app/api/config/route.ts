@@ -12,6 +12,8 @@ export async function GET() {
     fbPixelId: config.fbPixelId,
     hasFbAccessToken: !!config.fbAccessToken,
     fbTestEventCode: config.fbTestEventCode,
+    hasFbAdsToken: !!config.fbAdsToken,
+    fbAdAccountId: config.fbAdAccountId,
     configured: !!(config.supabaseUrl && config.supabaseAnonKey),
   })
 }
@@ -33,6 +35,8 @@ export async function POST(request: NextRequest) {
       fbPixelId: body.fbPixelId?.trim() || '',
       fbAccessToken: body.fbAccessToken?.trim() || '',
       fbTestEventCode: body.fbTestEventCode?.trim() || '',
+      fbAdsToken: body.fbAdsToken?.trim() || '',
+      fbAdAccountId: body.fbAdAccountId?.trim() || '',
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)

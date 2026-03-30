@@ -13,6 +13,8 @@ interface ConfigForm {
   fbPixelId: string
   fbAccessToken: string
   fbTestEventCode: string
+  fbAdsToken: string
+  fbAdAccountId: string
 }
 
 export default function SetupPage() {
@@ -26,6 +28,8 @@ export default function SetupPage() {
     fbPixelId: '',
     fbAccessToken: '',
     fbTestEventCode: '',
+    fbAdsToken: '',
+    fbAdAccountId: '',
   })
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -35,7 +39,9 @@ export default function SetupPage() {
   const [mostrarKey, setMostrarKey] = useState(false)
   const [mostrarOpenai, setMostrarOpenai] = useState(false)
   const [mostrarFbToken, setMostrarFbToken] = useState(false)
+  const [mostrarFbAdsToken, setMostrarFbAdsToken] = useState(false)
   const [hasFbAccessToken, setHasFbAccessToken] = useState(false)
+  const [hasFbAdsToken, setHasFbAdsToken] = useState(false)
 
   useEffect(() => {
     // Carregar config atual
@@ -49,8 +55,10 @@ export default function SetupPage() {
           uazapiUrl: data.uazapiUrl || '',
           fbPixelId: data.fbPixelId || '',
           fbTestEventCode: data.fbTestEventCode || '',
+          fbAdAccountId: data.fbAdAccountId || '',
         }))
         setHasFbAccessToken(!!data.hasFbAccessToken)
+        setHasFbAdsToken(!!data.hasFbAdsToken)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -272,6 +280,41 @@ export default function SetupPage() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                 />
                 <p className="text-xs text-gray-400 mt-1">Use durante testes para visualizar eventos no painel do Facebook</p>
+              </div>
+
+              <hr className="border-gray-100" />
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Marketing API — Dashboard de Ads</p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">ID da conta de anúncios</label>
+                <input
+                  type="text"
+                  value={form.fbAdAccountId}
+                  onChange={(e) => handleChange('fbAdAccountId', e.target.value)}
+                  placeholder="act_907365004373512"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                />
+                <p className="text-xs text-gray-400 mt-1">Gerenciador de Anúncios → URL da conta</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Token de Ads <span className="font-normal text-gray-400">(com permissão ads_read)</span></label>
+                <div className="relative">
+                  <input
+                    type={mostrarFbAdsToken ? 'text' : 'password'}
+                    value={form.fbAdsToken}
+                    onChange={(e) => handleChange('fbAdsToken', e.target.value)}
+                    placeholder={hasFbAdsToken ? '••••••••••••••••••••••' : 'EAAbi47F8h7g...'}
+                    className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                  />
+                  <button type="button" onClick={() => setMostrarFbAdsToken(!mostrarFbAdsToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {mostrarFbAdsToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {hasFbAdsToken && !form.fbAdsToken && (
+                  <p className="text-xs text-green-600 mt-1">Token já configurado. Preencha apenas para alterar.</p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">Explorador da Graph API com permissão ads_read</p>
               </div>
             </div>
           </div>

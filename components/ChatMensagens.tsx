@@ -14,6 +14,16 @@ interface Props {
   onMensagemEnviada?: (msg: MensagemWhatsapp) => void
 }
 
+function extrairTextoMensagem(mensagem: string): string {
+  try {
+    const obj = JSON.parse(mensagem)
+    // Tenta extrair texto em ordem de prioridade
+    return obj.text || obj.body || obj.caption || obj.mensagem || obj.description || mensagem
+  } catch {
+    return mensagem
+  }
+}
+
 function formatarDataHora(dateStr: string) {
   const d = new Date(dateStr)
   return d.toLocaleString('pt-BR', {
@@ -179,7 +189,7 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
                       : 'bg-green-500 text-white rounded-tr-sm'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{extrairTextoMensagem(msg.mensagem)}</p>
                   <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
                     <span className={`text-[10px] ${isCliente ? 'text-gray-400' : 'text-green-100'}`}>
                       {formatarDataHora(msg.data_criacao)}

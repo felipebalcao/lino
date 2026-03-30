@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
   const result = await res.json()
 
   if (!res.ok) {
+    console.error('[FB CAPI] Erro:', JSON.stringify(result))
     return NextResponse.json({ error: result }, { status: res.status })
   }
 

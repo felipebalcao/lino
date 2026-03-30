@@ -65,19 +65,15 @@ export async function GET(request: NextRequest) {
     const actions = (row.actions as { action_type: string; value: string }[]) ?? []
     const costPerAction = (row.cost_per_action_type as { action_type: string; value: string }[]) ?? []
 
-    // Mensagens iniciadas — WhatsApp ou Messenger
-    const MESSAGING_ACTIONS = [
-      'onsite_conversion.messaging_conversation_started_7d',
-      'onsite_conversion.total_messaging_connection',
-      'whatsapp_contact',
-    ]
+    // Mensagens iniciadas — usa o action type padrão do Facebook para conversas via mensagem
+    const ACTION_MENSAGEM = 'onsite_conversion.messaging_conversation_started_7d'
 
     const mensagensIniciadas = actions
-      .filter((a) => MESSAGING_ACTIONS.includes(a.action_type))
+      .filter((a) => a.action_type === ACTION_MENSAGEM)
       .reduce((sum, a) => sum + Number(a.value), 0)
 
     const custoPorMensagem = costPerAction
-      .filter((a) => MESSAGING_ACTIONS.includes(a.action_type))
+      .filter((a) => a.action_type === ACTION_MENSAGEM)
       .reduce((_, a) => Number(a.value), 0)
 
     return {

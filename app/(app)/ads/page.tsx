@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, TrendingUp, DollarSign, Eye, MousePointer, MessageSquare } from 'lucide-react'
+import { Loader2, TrendingUp, DollarSign, Eye, MousePointer, MessageSquare, ChevronUp, ChevronDown } from 'lucide-react'
 
 interface CampanhaMetrica {
   campanha: string
@@ -20,12 +20,19 @@ interface Totais {
   mensagensIniciadas: number
 }
 
+type SortField = keyof Omit<CampanhaMetrica, 'campanha'>
+type SortDir = 'asc' | 'desc'
+
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function formatNum(value: number) {
   return value.toLocaleString('pt-BR')
+}
+
+function formatPct(value: number) {
+  return value.toFixed(2).replace('.', ',') + '%'
 }
 
 const PERIODOS = [
@@ -35,12 +42,24 @@ const PERIODOS = [
   { label: 'Mês passado', value: 'last_month' },
 ]
 
+const COLUNAS: { field: SortField | null; label: string; align: 'left' | 'right' }[] = [
+  { field: null, label: 'Campanha', align: 'left' },
+  { field: 'gasto', label: 'Gasto', align: 'right' },
+  { field: 'impressoes', label: 'Impressões', align: 'right' },
+  { field: 'cliques', label: 'Cliques', align: 'right' },
+  { field: 'cpm', label: 'CPM', align: 'right' },
+  { field: 'mensagensIniciadas', label: 'Msgs iniciadas', align: 'right' },
+  { field: 'custoPorMensagem', label: 'Custo/msg', align: 'right' },
+]
+
 export default function AdsPage() {
   const [campanhas, setCampanhas] = useState<CampanhaMetrica[]>([])
   const [totais, setTotais] = useState<Totais | null>(null)
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [periodo, setPeriodo] = useState('last_30d')
+  const [sortField, setSortField] = useState<SortField>('gasto')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   async function carregar(p: string) {
     setLoading(true)
@@ -59,6 +78,31 @@ export default function AdsPage() {
   }
 
   useEffect(() => { carregar(periodo) }, [periodo])
+
+  function handleSort(field: SortField | null) {
+    if (!field) return
+    if (sortField === field) {
+      setSortDir((d) => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
+
+  const campanhasOrdenadas = [...campanhas].sort((a, b) => {
+    const mult = sortDir === 'desc' ? -1 : 1
+    return (a[sortField] - b[sortField]) * mult
+  })
+
+  // Médias calculadas no frontend
+  const custoPorConversa = totais && totais.mensagensIniciadas > 0
+    ? totais.gasto / totais.mensagensIniciadas : 0
+  const cpmMedio = totais && totais.impressoes > 0
+    ? (totais.gasto / totais.impressoes) * 1000 : 0
+  const ctrMedio = totais && totais.impressoes > 0
+    ? (totais.cliques / totais.impressoes) * 100 : 0
+  const cpcMedio = totais && totais.cliques > 0
+    ? totais.gasto / totais.cliques : 0
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-gray-50">
@@ -96,7 +140,7 @@ export default function AdsPage() {
 
         {!loading && !erro && totais && (
           <>
-            {/* Cards de totais */}
+            {/* Linha 1 — Totais */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 text-gray-500 text-xs font-medium mb-2">
@@ -118,9 +162,29 @@ export default function AdsPage() {
               </div>
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 text-gray-500 text-xs font-medium mb-2">
-                  <MessageSquare size={14} /> MENSAGENS INICIADAS
+                  <MessageSquare size={14} /> MSGS INICIADAS
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{formatNum(totais.mensagensIniciadas)}</p>
+              </div>
+            </div>
+
+            {/* Linha 2 — Médias */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="text-gray-500 text-xs font-medium mb-2">CUSTO/CONVERSA</div>
+                <p className="text-2xl font-bold text-gray-900">{custoPorConversa > 0 ? formatBRL(custoPorConversa) : '—'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="text-gray-500 text-xs font-medium mb-2">CPM MÉDIO</div>
+                <p className="text-2xl font-bold text-gray-900">{formatBRL(cpmMedio)}</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="text-gray-500 text-xs font-medium mb-2">CTR MÉDIO</div>
+                <p className="text-2xl font-bold text-gray-900">{formatPct(ctrMedio)}</p>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="text-gray-500 text-xs font-medium mb-2">CPC MÉDIO</div>
+                <p className="text-2xl font-bold text-gray-900">{cpcMedio > 0 ? formatBRL(cpcMedio) : '—'}</p>
               </div>
             </div>
 
@@ -138,17 +202,28 @@ export default function AdsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-100 bg-gray-50">
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Campanha</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasto</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Impressões</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliques</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">CPM</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Msgs iniciadas</th>
-                        <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Custo/msg</th>
+                        {COLUNAS.map(({ field, label, align }) => (
+                          <th
+                            key={label}
+                            onClick={() => handleSort(field)}
+                            className={`py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide select-none ${
+                              align === 'left' ? 'text-left px-6' : 'text-right px-4'
+                            } ${field ? 'cursor-pointer hover:text-gray-800' : ''}`}
+                          >
+                            <span className="inline-flex items-center gap-1 justify-end">
+                              {label}
+                              {field && sortField === field && (
+                                sortDir === 'desc'
+                                  ? <ChevronDown size={12} />
+                                  : <ChevronUp size={12} />
+                              )}
+                            </span>
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {campanhas.map((c) => (
+                      {campanhasOrdenadas.map((c) => (
                         <tr key={c.campanha} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 font-medium text-gray-900 max-w-xs truncate">{c.campanha}</td>
                           <td className="px-4 py-4 text-right text-gray-700">{formatBRL(c.gasto)}</td>

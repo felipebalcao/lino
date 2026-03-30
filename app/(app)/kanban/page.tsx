@@ -7,17 +7,17 @@ import Avatar from '@/components/Avatar'
 import { Plus, X, Loader2, Kanban } from 'lucide-react'
 
 const FB_EVENTOS = [
-  { value: 'Lead', label: 'Lead' },
-  { value: 'Contact', label: 'Contact' },
-  { value: 'CompleteRegistration', label: 'CompleteRegistration' },
-  { value: 'Schedule', label: 'Schedule' },
-  { value: 'SubmitApplication', label: 'SubmitApplication' },
-  { value: 'Purchase', label: 'Purchase' },
-  { value: 'InitiateCheckout', label: 'InitiateCheckout' },
-  { value: 'AddToCart', label: 'AddToCart' },
-  { value: 'ViewContent', label: 'ViewContent' },
-  { value: 'Search', label: 'Search' },
-  { value: 'CustomEvent', label: 'CustomEvent' },
+  { value: 'Lead', label: 'Lead (gerou interesse)' },
+  { value: 'Contact', label: 'Contato realizado' },
+  { value: 'CompleteRegistration', label: 'Cadastro completo' },
+  { value: 'Schedule', label: 'Agendamento' },
+  { value: 'SubmitApplication', label: 'Proposta enviada' },
+  { value: 'Purchase', label: 'Compra realizada' },
+  { value: 'InitiateCheckout', label: 'Iniciou checkout' },
+  { value: 'AddToCart', label: 'Adicionou ao carrinho' },
+  { value: 'ViewContent', label: 'Visualizou conteúdo' },
+  { value: 'Search', label: 'Pesquisou' },
+  { value: 'CustomEvent', label: 'Evento personalizado' },
 ]
 
 async function enviarEventoFacebook(clientes: { nome: string; telefone: string }[], eventName: string) {

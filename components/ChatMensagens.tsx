@@ -171,15 +171,17 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
           </div>
         )}
 
-        {!loading && mensagens.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 py-16">
-            <MessageSquare size={36} strokeWidth={1.5} />
-            <p className="text-sm">Nenhuma mensagem encontrada</p>
-          </div>
-        )}
-
-        {!loading &&
-          mensagens.filter((msg) => !isJsonMessage(msg.mensagem)).map((msg) => {
+        {!loading && (() => {
+          const visiveis = mensagens.filter((msg) => !isJsonMessage(msg.mensagem))
+          if (mensagens.length === 0 || visiveis.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 py-16">
+                <MessageSquare size={36} strokeWidth={1.5} />
+                <p className="text-sm">Nenhuma mensagem encontrada</p>
+              </div>
+            )
+          }
+          return visiveis.map((msg) => {
             const isCliente = msg.quem_mandou?.toLowerCase() === 'cliente'
             return (
               <div key={msg.id} className={`flex ${isCliente ? 'justify-start' : 'justify-end'}`}>
@@ -202,7 +204,8 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
                 </div>
               </div>
             )
-          })}
+          })
+        })()}
 
         <div ref={bottomRef} />
       </div>

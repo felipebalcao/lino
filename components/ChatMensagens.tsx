@@ -182,23 +182,27 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
             )
           }
           return visiveis.map((msg) => {
-            const isCliente = msg.quem_mandou?.toLowerCase() === 'cliente'
+            const quem = msg.quem_mandou?.toLowerCase()
+            const isCliente = quem === 'cliente'
+            const isManual = quem === 'manual'
             return (
               <div key={msg.id} className={`flex ${isCliente ? 'justify-start' : 'justify-end'}`}>
                 <div
                   className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${
                     isCliente
                       ? 'bg-white text-gray-800 rounded-tl-sm'
+                      : isManual
+                      ? 'bg-green-200 text-gray-800 rounded-tr-sm'
                       : 'bg-green-500 text-white rounded-tr-sm'
                   }`}
                 >
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
                   <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
-                    <span className={`text-[10px] ${isCliente ? 'text-gray-400' : 'text-green-100'}`}>
+                    <span className={`text-[10px] ${isCliente ? 'text-gray-400' : isManual ? 'text-green-700' : 'text-green-100'}`}>
                       {formatarDataHora(msg.data_criacao)}
                     </span>
                     {!isCliente && msg.status && (
-                      <span className="text-[10px] text-green-100">· {msg.status}</span>
+                      <span className={`text-[10px] ${isManual ? 'text-green-700' : 'text-green-100'}`}>· {msg.status}</span>
                     )}
                   </div>
                 </div>

@@ -86,46 +86,43 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
 }
 
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
-  const { data: clientes, error: errClientes } = await supabase
-    .from('clientes')
-    .select('*')
-
-  if (errClientes) throw errClientes
-  if (!clientes || clientes.length === 0) return []
-
-  // Deduplicar por telefone — manter o registro com maior id (mais recente)
-  const unicosPorTelefone: Record<string, Cliente> = {}
-  for (const c of clientes as Cliente[]) {
-    if (!c.telefone) continue
-    if (!unicosPorTelefone[c.telefone] || c.id > unicosPorTelefone[c.telefone].id) {
-      unicosPorTelefone[c.telefone] = c
-    }
-  }
-  const clientesUnicos = Object.values(unicosPorTelefone)
-
+  // 1. Busca a última mensagem de cada cliente, ordenada da mais recente para a mais antiga
   const { data: mensagens, error: errMsg } = await supabase
     .from('ultima_mensagem_por_cliente')
     .select('*')
+    .order('data_criacao', { ascending: false })
+    .limit(10000)
 
-  if (errMsg) console.warn('[ultima_mensagem_por_cliente] erro ao buscar mensagens:', errMsg.message)
+  if (errMsg) throw errMsg
+  if (!mensagens || mensagens.length === 0) return []
 
-  const ultimaPorTelefone: Record<string, MensagemWhatsapp> = {}
-  for (const msg of mensagens ?? []) {
-    ultimaPorTelefone[msg.numero_cliente] = msg
+  const telefones = mensagens.map((m) => m.numero_cliente)
+
+  // 2. Busca os dados dos clientes correspondentes
+  const { data: clientes, error: errClientes } = await supabase
+    .from('clientes')
+    .select('*')
+    .in('telefone', telefones)
+    .limit(10000)
+
+  if (errClientes) throw errClientes
+
+  // Deduplicar por telefone — manter o registro com maior id
+  const clientePorTelefone: Record<string, Cliente> = {}
+  for (const c of clientes as Cliente[]) {
+    if (!c.telefone) continue
+    if (!clientePorTelefone[c.telefone] || c.id > clientePorTelefone[c.telefone].id) {
+      clientePorTelefone[c.telefone] = c
+    }
   }
 
-  const resultado: ClienteComUltimaMensagem[] = clientesUnicos
-    .filter((c) => !!ultimaPorTelefone[c.telefone])
-    .map((c) => ({
-      ...c,
-      ultima_mensagem: ultimaPorTelefone[c.telefone],
-    }))
-
-  resultado.sort((a, b) => {
-    const dataA = a.ultima_mensagem?.data_criacao ?? a.created_at
-    const dataB = b.ultima_mensagem?.data_criacao ?? b.created_at
-    return new Date(dataB).getTime() - new Date(dataA).getTime()
-  })
+  // 3. Monta resultado mantendo a ordem da view (mais recente primeiro)
+  const resultado: ClienteComUltimaMensagem[] = []
+  for (const msg of mensagens) {
+    const cliente = clientePorTelefone[msg.numero_cliente]
+    if (!cliente) continue
+    resultado.push({ ...cliente, ultima_mensagem: msg as MensagemWhatsapp })
+  }
 
   return resultado
 }

@@ -15,9 +15,9 @@ const sizeMap = {
 }
 
 const COLORS = [
-  '#E53935', '#D81B60', '#8E24AA', '#5E35B1',
-  '#1E88E5', '#00897B', '#43A047', '#FB8C00',
-  '#F4511E', '#6D4C41', '#546E7A', '#039BE5',
+  '#8E24AA', '#5E35B1', '#1E88E5', '#039BE5',
+  '#00897B', '#43A047', '#6D4C41', '#546E7A',
+  '#D81B60', '#FB8C00', '#00ACC1', '#3949AB',
 ]
 
 function getColor(nome: string): string {

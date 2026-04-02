@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
 
   if (!res.ok) {
     console.error('[FB CAPI] Erro:', JSON.stringify(result))
-    return NextResponse.json({ error: result }, { status: res.status })
+    return NextResponse.json({ ok: false, error: result }, { status: res.status })
   }
 
-  return NextResponse.json(result)
+  return NextResponse.json({ ok: true, events_received: result.events_received, fbtrace_id: result.fbtrace_id })
 }

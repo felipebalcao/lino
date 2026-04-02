@@ -26,12 +26,27 @@ const CORES_PRESET = [
   '#3b82f6', '#06b6d4', '#64748b', '#1e293b',
 ]
 
-async function enviarEventoFacebook(clientes: { nome: string; telefone: string }[], eventName: string) {
-  await fetch('/api/facebook/conversions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientes, eventName }),
-  }).catch(() => {})
+async function enviarEventoFacebook(clientes: { id: number; nome: string; telefone: string }[], eventName: string, secaoNome: string) {
+  try {
+    const res = await fetch('/api/facebook/conversions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientes, eventName }),
+    })
+    const result = await res.json()
+    await fetch('/api/facebook/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientes,
+        evento: eventName,
+        secao: secaoNome,
+        events_received: result.events_received ?? null,
+        fbtrace_id: result.fbtrace_id ?? null,
+        erro: result.ok === false ? JSON.stringify(result.error) : null,
+      }),
+    })
+  } catch { /* ignora */ }
 }
 
 export default function KanbanPage() {
@@ -145,8 +160,9 @@ export default function KanbanPage() {
     const secaoDestino = secoes.find((s) => String(s.id) === secaoKey)
     if (secaoDestino?.facebook_evento && clienteMovido) {
       enviarEventoFacebook(
-        [{ nome: clienteMovido.nome, telefone: clienteMovido.telefone }],
+        [{ id: clienteMovido.id, nome: clienteMovido.nome, telefone: clienteMovido.telefone }],
         secaoDestino.facebook_evento,
+        secaoDestino.nome,
       )
     }
   }

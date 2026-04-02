@@ -86,43 +86,35 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
 }
 
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
-  // 1. Busca a última mensagem de cada cliente, ordenada da mais recente para a mais antiga
-  const { data: mensagens, error: errMsg } = await supabase
-    .from('ultima_mensagem_por_cliente')
-    .select('*')
-    .order('data_criacao', { ascending: false })
-    .limit(10000)
+  // Busca clientes e view em paralelo
+  const [clientesRes, mensagensRes] = await Promise.all([
+    supabase.from('clientes').select('*').limit(10000),
+    supabase.from('ultima_mensagem_por_cliente').select('*').limit(10000),
+  ])
 
-  if (errMsg) throw errMsg
-  if (!mensagens || mensagens.length === 0) return []
+  if (clientesRes.error) throw clientesRes.error
+  if (mensagensRes.error) throw mensagensRes.error
 
-  const telefones = mensagens.map((m) => m.numero_cliente)
-
-  // 2. Busca os dados dos clientes correspondentes
-  const { data: clientes, error: errClientes } = await supabase
-    .from('clientes')
-    .select('*')
-    .in('telefone', telefones)
-    .limit(10000)
-
-  if (errClientes) throw errClientes
-
-  // Deduplicar por telefone — manter o registro com maior id
+  // Deduplicar clientes por telefone — manter o de maior id
   const clientePorTelefone: Record<string, Cliente> = {}
-  for (const c of clientes as Cliente[]) {
+  for (const c of (clientesRes.data ?? []) as Cliente[]) {
     if (!c.telefone) continue
     if (!clientePorTelefone[c.telefone] || c.id > clientePorTelefone[c.telefone].id) {
       clientePorTelefone[c.telefone] = c
     }
   }
 
-  // 3. Monta resultado mantendo a ordem da view (mais recente primeiro)
+  // Monta resultado com a última mensagem e ordena por data_criacao desc
   const resultado: ClienteComUltimaMensagem[] = []
-  for (const msg of mensagens) {
+  for (const msg of mensagensRes.data ?? []) {
     const cliente = clientePorTelefone[msg.numero_cliente]
     if (!cliente) continue
     resultado.push({ ...cliente, ultima_mensagem: msg as MensagemWhatsapp })
   }
+
+  resultado.sort((a, b) =>
+    new Date(b.ultima_mensagem!.data_criacao).getTime() - new Date(a.ultima_mensagem!.data_criacao).getTime()
+  )
 
   return resultado
 }

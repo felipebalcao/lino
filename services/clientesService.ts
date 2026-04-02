@@ -109,7 +109,7 @@ export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMe
     .from('mensagens_whatsapp')
     .select('*')
     .in('numero_cliente', telefones)
-    .order('created_at', { ascending: false })
+    .order('data_criacao', { ascending: false })
 
   if (errMsg) console.warn('[mensagens_whatsapp] erro ao buscar mensagens:', errMsg.message)
 

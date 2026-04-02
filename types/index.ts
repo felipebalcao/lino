@@ -6,6 +6,8 @@ export interface Cliente {
   cidade: string
   foto?: string | null
   kanban_secao_id?: number | null
+  origem_app?: string | null
+  origem_url?: string | null
 }
 
 export interface MensagemWhatsapp {

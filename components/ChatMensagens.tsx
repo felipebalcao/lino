@@ -150,6 +150,25 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 text-sm">{cliente.nome}</p>
           <p className="text-xs text-gray-400">{cliente.telefone}{cliente.cidade ? ` · ${cliente.cidade}` : ''}</p>
+          {(cliente.origem_app || cliente.origem_url) && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {cliente.origem_app && (
+                <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium capitalize">
+                  {cliente.origem_app}
+                </span>
+              )}
+              {cliente.origem_url && (
+                <a
+                  href={cliente.origem_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-gray-400 hover:text-blue-500 truncate max-w-[200px]"
+                >
+                  {cliente.origem_url.replace('https://www.facebook.com/', 'fb.com/')}
+                </a>
+              )}
+            </div>
+          )}
         </div>
         <div className="relative shrink-0">
           <select

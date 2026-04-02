@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MensagemWhatsapp, Cliente, KanbanSecao } from '@/types'
-import { Loader2, MessageSquare, Send, ChevronDown } from 'lucide-react'
+import { Loader2, MessageSquare, Send, ChevronDown, AlertCircle, RotateCcw } from 'lucide-react'
+
 import Avatar from './Avatar'
 import { supabase } from '@/lib/supabase'
 import { getSecoes, moverClienteParaSecao } from '@/services/kanbanService'
@@ -39,8 +40,7 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const [texto, setTexto] = useState('')
-  const [enviando, setEnviando] = useState(false)
-  const [erroEnvio, setErroEnvio] = useState<string | null>(null)
+  const [errosPorId, setErrosPorId] = useState<Record<number, string>>({})
   const [secoes, setSecoes] = useState<KanbanSecao[]>([])
   const [secaoAtual, setSecaoAtual] = useState<number | null>(null)
   const [salvandoSecao, setSalvandoSecao] = useState(false)
@@ -70,28 +70,8 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensagens])
 
-  async function handleEnviar() {
-    if (!texto.trim() || !cliente || enviando) return
-    setErroEnvio(null)
-
-    const mensagemTexto = texto.trim()
-    const agora = new Date().toISOString()
-
-    // UI otimista — mostra a mensagem imediatamente
-    const msgOtimista: MensagemWhatsapp = {
-      id: Date.now(),
-      cliente_id: cliente.id,
-      numero_cliente: cliente.telefone,
-      mensagem: mensagemTexto,
-      quem_mandou: 'agente',
-      status: 'processando',
-      lote_id: null,
-      data_criacao: agora,
-    }
-    onMensagemEnviada?.(msgOtimista)
-    setTexto('')
-    setEnviando(true)
-
+  async function enviarMensagem(mensagemTexto: string, msgId: number) {
+    if (!cliente) return
     try {
       const [res] = await Promise.all([
         fetch('/api/send-message', {
@@ -103,20 +83,44 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
           numero_cliente: cliente.telefone,
           mensagem: mensagemTexto,
           status: 'processando',
-          quem_mandou: 'agente',
+          quem_mandou: 'manual',
         }),
       ])
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? 'Erro ao enviar')
       }
+      // Remove erro se tinha
+      setErrosPorId((prev) => { const n = { ...prev }; delete n[msgId]; return n })
     } catch (e: unknown) {
-      setErroEnvio(e instanceof Error ? e.message : 'Erro ao enviar mensagem')
-    } finally {
-      setEnviando(false)
-      inputRef.current?.focus()
+      const msg = e instanceof Error ? e.message : 'Erro ao enviar mensagem'
+      setErrosPorId((prev) => ({ ...prev, [msgId]: msg }))
     }
+  }
+
+  async function handleEnviar() {
+    if (!texto.trim() || !cliente) return
+
+    const mensagemTexto = texto.trim()
+    const msgId = Date.now()
+    const agora = new Date().toISOString()
+
+    const msgOtimista: MensagemWhatsapp = {
+      id: msgId,
+      cliente_id: cliente.id,
+      numero_cliente: cliente.telefone,
+      mensagem: mensagemTexto,
+      quem_mandou: 'manual',
+      status: 'processando',
+      lote_id: null,
+      data_criacao: agora,
+    }
+    onMensagemEnviada?.(msgOtimista)
+    setTexto('')
+    inputRef.current?.focus()
+
+    // Envia em background — input já liberado
+    enviarMensagem(mensagemTexto, msgId)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -185,25 +189,43 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
             const quem = msg.quem_mandou?.toLowerCase()
             const isCliente = quem === 'cliente'
             const isManual = quem === 'manual'
+            const erro = errosPorId[msg.id]
             return (
               <div key={msg.id} className={`flex ${isCliente ? 'justify-start' : 'justify-end'}`}>
-                <div
-                  className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${
-                    isCliente
-                      ? 'bg-white text-gray-800 rounded-tl-sm'
-                      : isManual
-                      ? 'bg-blue-500 text-white rounded-tr-sm'
-                      : 'bg-green-500 text-white rounded-tr-sm'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
-                  <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
-                    <span className={`text-[10px] ${isCliente ? 'text-gray-400' : isManual ? 'text-blue-100' : 'text-green-100'}`}>
-                      {formatarDataHora(msg.data_criacao)}
-                    </span>
-                    {!isCliente && msg.status && (
-                      <span className={`text-[10px] ${isManual ? 'text-blue-100' : 'text-green-100'}`}>· {msg.status}</span>
-                    )}
+                <div className={`flex items-end gap-1.5 ${isCliente ? 'flex-row' : 'flex-row-reverse'}`}>
+                  {erro && (
+                    <button
+                      onClick={() => enviarMensagem(msg.mensagem, msg.id)}
+                      title={erro}
+                      className="text-red-500 hover:text-red-600 shrink-0 mb-1"
+                    >
+                      <AlertCircle size={16} />
+                    </button>
+                  )}
+                  <div
+                    className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${
+                      erro
+                        ? 'bg-red-100 text-red-800 rounded-tr-sm'
+                        : isCliente
+                        ? 'bg-white text-gray-800 rounded-tl-sm'
+                        : isManual
+                        ? 'bg-blue-500 text-white rounded-tr-sm'
+                        : 'bg-green-500 text-white rounded-tr-sm'
+                    }`}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
+                    <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
+                      <span className={`text-[10px] ${erro ? 'text-red-400' : isCliente ? 'text-gray-400' : isManual ? 'text-blue-100' : 'text-green-100'}`}>
+                        {formatarDataHora(msg.data_criacao)}
+                      </span>
+                      {erro ? (
+                        <button onClick={() => enviarMensagem(msg.mensagem, msg.id)} className="text-[10px] text-red-500 flex items-center gap-0.5 hover:underline">
+                          <RotateCcw size={10} /> Tentar novamente
+                        </button>
+                      ) : !isCliente && msg.status && (
+                        <span className={`text-[10px] ${isManual ? 'text-blue-100' : 'text-green-100'}`}>· {msg.status}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -216,9 +238,6 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
 
       {/* Input de envio */}
       <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3">
-        {erroEnvio && (
-          <p className="text-xs text-red-500 mb-2 px-1">{erroEnvio}</p>
-        )}
         <div className="flex items-end gap-3">
           <textarea
             ref={inputRef}
@@ -232,13 +251,10 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
           />
           <button
             onClick={handleEnviar}
-            disabled={!texto.trim() || enviando}
+            disabled={!texto.trim()}
             className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
           >
-            {enviando
-              ? <Loader2 size={18} className="text-white animate-spin" />
-              : <Send size={18} className="text-white" />
-            }
+            <Send size={18} className="text-white" />
           </button>
         </div>
       </div>

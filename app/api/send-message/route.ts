@@ -3,10 +3,10 @@ import { readConfig } from '@/lib/config-server'
 
 export async function POST(request: NextRequest) {
   const config = await readConfig()
-  const uazapiUrl = config.uazapiUrl
+  const uazapiBase = config.uazapiUrl?.replace(/\/+$/, '').replace(/\/send\/.*$/, '')
   const uazapiToken = config.uazapiToken
 
-  if (!uazapiUrl || !uazapiToken) {
+  if (!uazapiBase || !uazapiToken) {
     return NextResponse.json({ error: 'UAZAPI não configurada' }, { status: 500 })
   }
 
@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'numero e mensagem são obrigatórios' }, { status: 400 })
   }
 
-  const response = await fetch(uazapiUrl, {
+  // Sempre texto por enquanto — endpoint fixo
+  const url = `${uazapiBase}/send/text`
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

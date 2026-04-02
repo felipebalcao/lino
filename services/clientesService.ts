@@ -88,8 +88,8 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
   // Busca clientes e view em paralelo
   const [clientesRes, mensagensRes] = await Promise.all([
-    supabase.from('clientes').select('*').limit(10000),
-    supabase.from('ultima_mensagem_por_cliente').select('*').limit(10000),
+    supabase.from('clientes').select('*'),
+    supabase.from('ultima_mensagem_por_cliente').select('*'),
   ])
 
   if (clientesRes.error) throw clientesRes.error

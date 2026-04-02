@@ -66,6 +66,14 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
                     ? cliente.ultima_mensagem!.mensagem
                     : cliente.cidade || cliente.telefone}
                 </p>
+                {temMensagem && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {new Date(cliente.ultima_mensagem!.data_criacao).toLocaleString('pt-BR', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                )}
               </div>
             </button>
           </li>

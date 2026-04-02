@@ -117,10 +117,12 @@ export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMe
     ultimaPorTelefone[msg.numero_cliente] = msg
   }
 
-  const resultado: ClienteComUltimaMensagem[] = clientesUnicos.map((c) => ({
-    ...c,
-    ultima_mensagem: ultimaPorTelefone[c.telefone] ?? null,
-  }))
+  const resultado: ClienteComUltimaMensagem[] = clientesUnicos
+    .filter((c) => !!ultimaPorTelefone[c.telefone])
+    .map((c) => ({
+      ...c,
+      ultima_mensagem: ultimaPorTelefone[c.telefone],
+    }))
 
   resultado.sort((a, b) => {
     const dataA = a.ultima_mensagem?.data_criacao ?? a.created_at

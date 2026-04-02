@@ -9,14 +9,28 @@ interface Props {
 }
 
 const sizeMap = {
-  sm: 'w-9 h-9 text-xs',
-  md: 'w-11 h-11 text-sm',
-  lg: 'w-12 h-12 text-sm',
+  sm: 'w-9 h-9 text-sm',
+  md: 'w-11 h-11 text-base',
+  lg: 'w-12 h-12 text-base',
+}
+
+const COLORS = [
+  '#E53935', '#D81B60', '#8E24AA', '#5E35B1',
+  '#1E88E5', '#00897B', '#43A047', '#FB8C00',
+  '#F4511E', '#6D4C41', '#546E7A', '#039BE5',
+]
+
+function getColor(nome: string): string {
+  let hash = 0
+  for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash)
+  return COLORS[Math.abs(hash) % COLORS.length]
 }
 
 export default function Avatar({ nome, foto, size = 'md' }: Props) {
   const [imgError, setImgError] = useState(false)
   const sizeClass = sizeMap[size]
+  const initials = nome.trim().slice(0, 2).toUpperCase()
+  const bg = getColor(nome)
 
   if (foto && !imgError) {
     return (
@@ -30,12 +44,11 @@ export default function Avatar({ nome, foto, size = 'md' }: Props) {
   }
 
   return (
-    <div className={`${sizeClass} rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden`}>
-      <svg viewBox="0 0 24 24" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-        <rect width="24" height="24" fill="#D1D5DB" />
-        <circle cx="12" cy="9" r="4" fill="#9CA3AF" />
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#9CA3AF" />
-      </svg>
+    <div
+      className={`${sizeClass} rounded-full flex items-center justify-center font-semibold text-white shrink-0`}
+      style={{ backgroundColor: bg }}
+    >
+      {initials}
     </div>
   )
 }

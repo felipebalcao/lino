@@ -192,17 +192,17 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
                     isCliente
                       ? 'bg-white text-gray-800 rounded-tl-sm'
                       : isManual
-                      ? 'bg-green-200 text-gray-800 rounded-tr-sm'
+                      ? 'bg-blue-500 text-white rounded-tr-sm'
                       : 'bg-green-500 text-white rounded-tr-sm'
                   }`}
                 >
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
                   <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
-                    <span className={`text-[10px] ${isCliente ? 'text-gray-400' : isManual ? 'text-green-700' : 'text-green-100'}`}>
+                    <span className={`text-[10px] ${isCliente ? 'text-gray-400' : isManual ? 'text-blue-100' : 'text-green-100'}`}>
                       {formatarDataHora(msg.data_criacao)}
                     </span>
                     {!isCliente && msg.status && (
-                      <span className={`text-[10px] ${isManual ? 'text-green-700' : 'text-green-100'}`}>· {msg.status}</span>
+                      <span className={`text-[10px] ${isManual ? 'text-blue-100' : 'text-green-100'}`}>· {msg.status}</span>
                     )}
                   </div>
                 </div>

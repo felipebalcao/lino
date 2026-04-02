@@ -84,13 +84,19 @@ export default function MensagensPage() {
 
   // Filtro de busca
   useEffect(() => {
+    const ordenados = [...clientes].sort((a, b) => {
+      const dataA = a.ultima_mensagem?.data_criacao ?? a.created_at ?? ''
+      const dataB = b.ultima_mensagem?.data_criacao ?? b.created_at ?? ''
+      return new Date(dataB).getTime() - new Date(dataA).getTime()
+    })
+
     if (!busca.trim()) {
-      setClientesFiltrados(clientes)
+      setClientesFiltrados(ordenados)
       return
     }
     const termo = busca.toLowerCase()
     setClientesFiltrados(
-      clientes.filter(
+      ordenados.filter(
         (c) =>
           c.nome.toLowerCase().includes(termo) ||
           c.telefone?.toLowerCase().includes(termo) ||

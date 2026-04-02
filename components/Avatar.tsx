@@ -16,7 +16,6 @@ const sizeMap = {
 
 export default function Avatar({ nome, foto, size = 'md' }: Props) {
   const [imgError, setImgError] = useState(false)
-  const initials = nome.slice(0, 2).toUpperCase()
   const sizeClass = sizeMap[size]
 
   if (foto && !imgError) {
@@ -31,10 +30,12 @@ export default function Avatar({ nome, foto, size = 'md' }: Props) {
   }
 
   return (
-    <div
-      className={`${sizeClass} rounded-full bg-green-100 flex items-center justify-center font-semibold text-green-700 shrink-0`}
-    >
-      {initials}
+    <div className={`${sizeClass} rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden`}>
+      <svg viewBox="0 0 24 24" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" fill="#D1D5DB" />
+        <circle cx="12" cy="9" r="4" fill="#9CA3AF" />
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#9CA3AF" />
+      </svg>
     </div>
   )
 }

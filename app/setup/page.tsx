@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react'
 
+const MASKED = '••••••••••••••••••••••'
+
 interface ConfigForm {
   supabaseUrl: string
   supabaseAnonKey: string
@@ -40,8 +42,6 @@ export default function SetupPage() {
   const [mostrarOpenai, setMostrarOpenai] = useState(false)
   const [mostrarFbToken, setMostrarFbToken] = useState(false)
   const [mostrarFbAdsToken, setMostrarFbAdsToken] = useState(false)
-  const [hasFbAccessToken, setHasFbAccessToken] = useState(false)
-  const [hasFbAdsToken, setHasFbAdsToken] = useState(false)
 
   useEffect(() => {
     // Carregar config atual
@@ -53,12 +53,14 @@ export default function SetupPage() {
           supabaseUrl: data.supabaseUrl || '',
           supabaseAnonKey: data.supabaseAnonKey || '',
           uazapiUrl: data.uazapiUrl || '',
+          uazapiToken: data.hasUazapiToken ? MASKED : '',
+          openaiKey: data.hasOpenaiKey ? MASKED : '',
           fbPixelId: data.fbPixelId || '',
+          fbAccessToken: data.hasFbAccessToken ? MASKED : '',
           fbTestEventCode: data.fbTestEventCode || '',
+          fbAdsToken: data.hasFbAdsToken ? MASKED : '',
           fbAdAccountId: data.fbAdAccountId || '',
         }))
-        setHasFbAccessToken(!!data.hasFbAccessToken)
-        setHasFbAdsToken(!!data.hasFbAdsToken)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -178,6 +180,7 @@ export default function SetupPage() {
                   type={mostrarOpenai ? 'text' : 'password'}
                   value={form.openaiKey}
                   onChange={(e) => handleChange('openaiKey', e.target.value)}
+                  onFocus={() => { if (form.openaiKey === MASKED) handleChange('openaiKey', '') }}
                   placeholder="sk-..."
                   className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                 />
@@ -216,6 +219,7 @@ export default function SetupPage() {
                     type={mostrarToken ? 'text' : 'password'}
                     value={form.uazapiToken}
                     onChange={(e) => handleChange('uazapiToken', e.target.value)}
+                    onFocus={() => { if (form.uazapiToken === MASKED) handleChange('uazapiToken', '') }}
                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   />
@@ -255,16 +259,14 @@ export default function SetupPage() {
                     type={mostrarFbToken ? 'text' : 'password'}
                     value={form.fbAccessToken}
                     onChange={(e) => handleChange('fbAccessToken', e.target.value)}
-                    placeholder={hasFbAccessToken ? '••••••••••••••••••••••' : 'EAAxxxxxxxx...'}
+                    onFocus={() => { if (form.fbAccessToken === MASKED) handleChange('fbAccessToken', '') }}
+                    placeholder="EAAxxxxxxxx..."
                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   />
                   <button type="button" onClick={() => setMostrarFbToken(!mostrarFbToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {mostrarFbToken ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {hasFbAccessToken && !form.fbAccessToken && (
-                  <p className="text-xs text-green-600 mt-1">Token já configurado. Preencha apenas para alterar.</p>
-                )}
                 <p className="text-xs text-gray-400 mt-1">Events Manager → Pixel → Configurações → API de Conversões</p>
               </div>
 
@@ -304,16 +306,14 @@ export default function SetupPage() {
                     type={mostrarFbAdsToken ? 'text' : 'password'}
                     value={form.fbAdsToken}
                     onChange={(e) => handleChange('fbAdsToken', e.target.value)}
-                    placeholder={hasFbAdsToken ? '••••••••••••••••••••••' : 'EAAbi47F8h7g...'}
+                    onFocus={() => { if (form.fbAdsToken === MASKED) handleChange('fbAdsToken', '') }}
+                    placeholder="EAAbi47F8h7g..."
                     className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   />
                   <button type="button" onClick={() => setMostrarFbAdsToken(!mostrarFbAdsToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {mostrarFbAdsToken ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {hasFbAdsToken && !form.fbAdsToken && (
-                  <p className="text-xs text-green-600 mt-1">Token já configurado. Preencha apenas para alterar.</p>
-                )}
                 <p className="text-xs text-gray-400 mt-1">Explorador da Graph API com permissão ads_read</p>
               </div>
             </div>

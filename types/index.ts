@@ -29,6 +29,7 @@ export interface KanbanSecao {
   ordem: number
   created_at: string
   facebook_evento?: string | null
+  cor?: string | null
 }
 
 export interface TreinamentoPrompt {

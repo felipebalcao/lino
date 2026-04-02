@@ -11,7 +11,7 @@ export async function getSecoes(): Promise<KanbanSecao[]> {
   return data ?? []
 }
 
-export async function criarSecao(nome: string, facebookEvento?: string | null): Promise<KanbanSecao> {
+export async function criarSecao(nome: string, facebookEvento?: string | null, cor?: string | null): Promise<KanbanSecao> {
   const { data: existentes } = await supabase
     .from('kanban_secoes')
     .select('ordem')
@@ -22,12 +22,21 @@ export async function criarSecao(nome: string, facebookEvento?: string | null): 
 
   const { data, error } = await supabase
     .from('kanban_secoes')
-    .insert({ nome: nome.trim(), ordem: proximaOrdem, facebook_evento: facebookEvento ?? null })
+    .insert({ nome: nome.trim(), ordem: proximaOrdem, facebook_evento: facebookEvento ?? null, cor: cor ?? null })
     .select()
     .single()
 
   if (error) throw error
   return data
+}
+
+export async function atualizarCorSecao(id: number, cor: string): Promise<void> {
+  const { error } = await supabase
+    .from('kanban_secoes')
+    .update({ cor })
+    .eq('id', id)
+
+  if (error) throw error
 }
 
 export async function deletarSecao(id: number): Promise<void> {

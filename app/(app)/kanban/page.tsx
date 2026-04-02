@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { getSecoes, criarSecao, deletarSecao, getClientesPorSecao, moverClienteParaSecao } from '@/services/kanbanService'
+import { getSecoes, criarSecao, deletarSecao, getClientesPorSecao, moverClienteParaSecao, atualizarCorSecao } from '@/services/kanbanService'
 import { KanbanSecao, Cliente } from '@/types'
 import Avatar from '@/components/Avatar'
 import { Plus, X, Loader2, Kanban } from 'lucide-react'
@@ -20,6 +20,12 @@ const FB_EVENTOS = [
   { value: 'CustomEvent', label: 'Evento personalizado' },
 ]
 
+const CORES_PRESET = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+  '#f97316', '#eab308', '#22c55e', '#14b8a6',
+  '#3b82f6', '#06b6d4', '#64748b', '#1e293b',
+]
+
 async function enviarEventoFacebook(clientes: { nome: string; telefone: string }[], eventName: string) {
   await fetch('/api/facebook/conversions', {
     method: 'POST',
@@ -35,6 +41,7 @@ export default function KanbanPage() {
   const [novaSecao, setNovaSecao] = useState('')
   const [novaSecaoFb, setNovaSecaoFb] = useState(false)
   const [novaSecaoEvento, setNovaSecaoEvento] = useState('Lead')
+  const [novaSecaoCor, setNovaSecaoCor] = useState(CORES_PRESET[0])
   const [criando, setCriando] = useState(false)
   const [mostrarInput, setMostrarInput] = useState(false)
   const [dragClienteId, setDragClienteId] = useState<number | null>(null)
@@ -63,12 +70,13 @@ export default function KanbanPage() {
     if (!novaSecao.trim()) return
     setCriando(true)
     try {
-      const nova = await criarSecao(novaSecao, novaSecaoFb ? novaSecaoEvento : null)
+      const nova = await criarSecao(novaSecao, novaSecaoFb ? novaSecaoEvento : null, novaSecaoCor)
       setSecoes((prev) => [...prev, nova])
       setClientes((prev) => ({ ...prev, [String(nova.id)]: [] }))
       setNovaSecao('')
       setNovaSecaoFb(false)
       setNovaSecaoEvento('Lead')
+      setNovaSecaoCor(CORES_PRESET[0])
       setMostrarInput(false)
     } finally {
       setCriando(false)
@@ -80,6 +88,11 @@ export default function KanbanPage() {
     await deletarSecao(id)
     setSecoes((prev) => prev.filter((s) => s.id !== id))
     await carregar()
+  }
+
+  async function handleAlterarCor(id: number, cor: string) {
+    setSecoes((prev) => prev.map((s) => s.id === id ? { ...s, cor } : s))
+    await atualizarCorSecao(id, cor)
   }
 
   function handleDragStart(e: React.DragEvent, clienteId: number) {
@@ -104,17 +117,14 @@ export default function KanbanPage() {
 
     const secaoId = secaoKey === 'sem_secao' ? null : Number(secaoKey)
 
-    // Encontra o cliente antes do setState para poder usar após
     let clienteMovido: Cliente | undefined
     for (const cols of Object.values(clientes)) {
       const found = cols.find((c) => c.id === dragClienteId)
       if (found) { clienteMovido = found; break }
     }
 
-    // Atualiza local otimistamente
     setClientes((prev) => {
       const novo = { ...prev }
-
       for (const key of Object.keys(novo)) {
         const idx = novo[key].findIndex((c) => c.id === dragClienteId)
         if (idx !== -1) {
@@ -122,19 +132,16 @@ export default function KanbanPage() {
           break
         }
       }
-
       if (clienteMovido) {
         if (!novo[secaoKey]) novo[secaoKey] = []
         novo[secaoKey] = [...novo[secaoKey], { ...clienteMovido, kanban_secao_id: secaoId }]
       }
-
       return novo
     })
 
     setDragClienteId(null)
     await moverClienteParaSecao(dragClienteId, secaoId)
 
-    // Envia ao Facebook se a seção destino tem evento configurado
     const secaoDestino = secoes.find((s) => String(s.id) === secaoKey)
     if (secaoDestino?.facebook_evento && clienteMovido) {
       enviarEventoFacebook(
@@ -144,9 +151,9 @@ export default function KanbanPage() {
     }
   }
 
-  const colunas: { key: string; nome: string; secaoId?: number; facebookEvento?: string | null }[] = [
-    { key: 'sem_secao', nome: 'Sem seção' },
-    ...secoes.map((s) => ({ key: String(s.id), nome: s.nome, secaoId: s.id, facebookEvento: s.facebook_evento })),
+  const colunas: { key: string; nome: string; secaoId?: number; facebookEvento?: string | null; cor?: string | null }[] = [
+    { key: 'sem_secao', nome: 'Sem seção', cor: '#94a3b8' },
+    ...secoes.map((s) => ({ key: String(s.id), nome: s.nome, secaoId: s.id, facebookEvento: s.facebook_evento, cor: s.cor })),
   ]
 
   if (loading) {
@@ -195,6 +202,23 @@ export default function KanbanPage() {
                 </button>
               </div>
 
+              {/* Cor */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Cor:</span>
+                {CORES_PRESET.map((cor) => (
+                  <button
+                    key={cor}
+                    type="button"
+                    onClick={() => setNovaSecaoCor(cor)}
+                    className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{
+                      backgroundColor: cor,
+                      borderColor: novaSecaoCor === cor ? '#111' : 'transparent',
+                    }}
+                  />
+                ))}
+              </div>
+
               {/* Toggle Facebook */}
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
@@ -233,9 +257,10 @@ export default function KanbanPage() {
       {/* Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-4 h-full px-8 py-6" style={{ minWidth: 'max-content' }}>
-          {colunas.map(({ key, nome, secaoId, facebookEvento }) => {
+          {colunas.map(({ key, nome, secaoId, facebookEvento, cor }) => {
             const cards = clientes[key] ?? []
             const isDragOver = dragSobreSecao === key
+            const corAtiva = cor ?? '#94a3b8'
 
             return (
               <div
@@ -248,6 +273,33 @@ export default function KanbanPage() {
                 {/* Cabeçalho da coluna */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
+                    {/* Bolinha de cor clicável */}
+                    {secaoId ? (
+                      <div className="relative group">
+                        <button
+                          type="button"
+                          className="w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-1 ring-transparent group-hover:ring-gray-300 transition-all"
+                          style={{ backgroundColor: corAtiva }}
+                        />
+                        {/* Dropdown de cores */}
+                        <div className="absolute left-0 top-5 z-10 hidden group-hover:flex flex-wrap gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-32">
+                          {CORES_PRESET.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => handleAlterarCor(secaoId, c)}
+                              className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                              style={{
+                                backgroundColor: c,
+                                borderColor: corAtiva === c ? '#111' : 'transparent',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: corAtiva }} />
+                    )}
                     <span className="font-semibold text-gray-800 text-sm">{nome}</span>
                     <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">
                       {cards.length}
@@ -271,6 +323,9 @@ export default function KanbanPage() {
                   )}
                 </div>
 
+                {/* Linha colorida no topo da coluna */}
+                <div className="h-1 rounded-full mb-2" style={{ backgroundColor: corAtiva }} />
+
                 {/* Coluna */}
                 <div
                   className={`flex-1 rounded-xl p-2 space-y-2 overflow-y-auto transition-colors ${
@@ -278,7 +333,7 @@ export default function KanbanPage() {
                       ? 'bg-green-50 border-2 border-dashed border-green-400'
                       : 'bg-gray-100 border-2 border-transparent'
                   }`}
-                  style={{ minHeight: '200px', maxHeight: 'calc(100vh - 220px)' }}
+                  style={{ minHeight: '200px', maxHeight: 'calc(100vh - 240px)' }}
                 >
                   {cards.length === 0 && (
                     <div className="flex items-center justify-center h-20 text-gray-400 text-xs">

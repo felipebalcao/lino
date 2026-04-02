@@ -103,12 +103,9 @@ export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMe
   }
   const clientesUnicos = Object.values(unicosPorTelefone)
 
-  const telefones = clientesUnicos.map((c) => c.telefone).filter(Boolean)
-
   const { data: mensagens, error: errMsg } = await supabase
     .from('ultima_mensagem_por_cliente')
     .select('*')
-    .in('numero_cliente', telefones)
 
   if (errMsg) console.warn('[ultima_mensagem_por_cliente] erro ao buscar mensagens:', errMsg.message)
 

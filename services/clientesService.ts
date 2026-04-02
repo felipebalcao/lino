@@ -107,9 +107,10 @@ export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMe
 
   const { data: mensagens, error: errMsg } = await supabase
     .from('mensagens_whatsapp')
-    .select('*')
+    .select('id, numero_cliente, mensagem, quem_mandou, status, lote_id, data_criacao')
     .in('numero_cliente', telefones)
     .order('data_criacao', { ascending: false })
+    .limit(50000)
 
   if (errMsg) console.warn('[mensagens_whatsapp] erro ao buscar mensagens:', errMsg.message)
 

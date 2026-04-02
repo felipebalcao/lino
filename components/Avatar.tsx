@@ -31,6 +31,7 @@ export default function Avatar({ nome, foto, size = 'md' }: Props) {
   const sizeClass = sizeMap[size]
   const initials = nome.trim().slice(0, 2).toUpperCase()
   const bg = getColor(nome)
+  const semNome = !nome.trim() || initials.length === 0
 
   if (foto && !imgError) {
     return (
@@ -40,6 +41,17 @@ export default function Avatar({ nome, foto, size = 'md' }: Props) {
         onError={() => setImgError(true)}
         className={`${sizeClass} rounded-full object-cover shrink-0`}
       />
+    )
+  }
+
+  if (semNome) {
+    return (
+      <div className={`${sizeClass} rounded-full bg-gray-200 flex items-center justify-center shrink-0`}>
+        <svg viewBox="0 0 24 24" className="w-3/5 h-3/5" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="8" r="4" fill="#9CA3AF" />
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#9CA3AF" />
+        </svg>
+      </div>
     )
   }
 

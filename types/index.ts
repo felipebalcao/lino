@@ -75,6 +75,7 @@ export interface GruposLink {
   rotator_id: string
   nome: string | null
   url: string
+  whatsapp_group_id: string | null
   contador_acessos: number
   participantes: number
   ativo: boolean

@@ -10,6 +10,7 @@ import {
   adicionarLink,
   deletarLink,
   toggleLink,
+  atualizarGroupId,
 } from '@/services/gruposService'
 import { GruposRotatorComLinks, GruposLink } from '@/types'
 
@@ -26,8 +27,12 @@ export default function GruposPage() {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
 
   // Formulário de novo link por rotator
-  const [novoLink, setNovoLink] = useState<Record<string, { url: string; nome: string }>>({})
+  const [novoLink, setNovoLink] = useState<Record<string, { url: string; nome: string; groupId: string }>>({})
   const [adicionandoLink, setAdicionandoLink] = useState<string | null>(null)
+
+  // Edição de Group ID por link
+  const [editandoGroupId, setEditandoGroupId] = useState<string | null>(null)
+  const [groupIdEditando, setGroupIdEditando] = useState('')
 
   // Edição de nome
   const [editando, setEditando] = useState<string | null>(null)
@@ -93,13 +98,13 @@ export default function GruposPage() {
     if (!form?.url?.trim()) return
     try {
       setAdicionandoLink(rotatorId)
-      const link = await adicionarLink(rotatorId, form.url.trim(), form.nome)
+      const link = await adicionarLink(rotatorId, form.url.trim(), form.nome, form.groupId)
       setRotators((prev) =>
         prev.map((r) =>
           r.id === rotatorId ? { ...r, links: [...r.links, link] } : r
         )
       )
-      setNovoLink((prev) => ({ ...prev, [rotatorId]: { url: '', nome: '' } }))
+      setNovoLink((prev) => ({ ...prev, [rotatorId]: { url: '', nome: '', groupId: '' } }))
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : 'Erro ao adicionar link')
     } finally {
@@ -139,6 +144,27 @@ export default function GruposPage() {
       )
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : 'Erro ao atualizar link')
+    }
+  }
+
+  async function handleSalvarGroupId(linkId: string, rotatorId: string) {
+    if (!groupIdEditando.trim()) return
+    try {
+      await atualizarGroupId(linkId, groupIdEditando.trim())
+      setRotators((prev) =>
+        prev.map((r) =>
+          r.id !== rotatorId ? r : {
+            ...r,
+            links: r.links.map((l) =>
+              l.id === linkId ? { ...l, whatsapp_group_id: groupIdEditando.trim() } : l
+            ),
+          }
+        )
+      )
+      setEditandoGroupId(null)
+      setGroupIdEditando('')
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : 'Erro ao salvar Group ID')
     }
   }
 
@@ -382,46 +408,88 @@ export default function GruposPage() {
                     {rotator.links.map((link) => (
                       <div
                         key={link.id}
-                        className={`flex items-center gap-3 p-2.5 rounded-lg border ${
+                        className={`flex flex-col gap-1.5 p-2.5 rounded-lg border ${
                           link.ativo
                             ? 'bg-gray-700/50 border-gray-600'
                             : 'bg-gray-900/50 border-gray-700 opacity-60'
                         }`}
                       >
-                        <div className="flex-1 min-w-0">
-                          {link.nome && (
-                            <p className="text-xs font-medium text-white truncate">{link.nome}</p>
-                          )}
-                          <p className="text-xs text-gray-400 truncate">{link.url}</p>
-                        </div>
-                        <div className="flex flex-col items-end shrink-0 gap-0.5">
-                          <span className="text-xs text-blue-400">{link.participantes} part.</span>
-                          <span className="text-xs text-gray-500">{link.contador_acessos} acesso{link.contador_acessos !== 1 ? 's' : ''}</span>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            {link.nome && (
+                              <p className="text-xs font-medium text-white truncate">{link.nome}</p>
+                            )}
+                            <p className="text-xs text-gray-400 truncate">{link.url}</p>
+                          </div>
+                          <div className="flex flex-col items-end shrink-0 gap-0.5">
+                            <span className="text-xs text-blue-400">{link.participantes} part.</span>
+                            <span className="text-xs text-gray-500">{link.contador_acessos} acesso{link.contador_acessos !== 1 ? 's' : ''}</span>
+                          </div>
+                          <button
+                            onClick={() => handleToggleLink(rotator.id, link)}
+                            className="text-gray-400 hover:text-white transition-colors shrink-0"
+                            title={link.ativo ? 'Desativar' : 'Ativar'}
+                          >
+                            {link.ativo ? (
+                              <ToggleRight size={20} className="text-green-400" />
+                            ) : (
+                              <ToggleLeft size={20} />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeletarLink(rotator.id, link.id)}
+                            className="p-1 rounded hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors shrink-0"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
 
-                        <button
-                          onClick={() => handleToggleLink(rotator.id, link)}
-                          className="text-gray-400 hover:text-white transition-colors shrink-0"
-                          title={link.ativo ? 'Desativar' : 'Ativar'}
-                        >
-                          {link.ativo ? (
-                            <ToggleRight size={20} className="text-green-400" />
-                          ) : (
-                            <ToggleLeft size={20} />
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => handleDeletarLink(rotator.id, link.id)}
-                          className="p-1 rounded hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors shrink-0"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {/* Group ID */}
+                        {editandoGroupId === link.id ? (
+                          <div className="flex gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={groupIdEditando}
+                              onChange={(e) => setGroupIdEditando(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSalvarGroupId(link.id, rotator.id)
+                                if (e.key === 'Escape') { setEditandoGroupId(null); setGroupIdEditando('') }
+                              }}
+                              placeholder="120363...@g.us"
+                              className="flex-1 bg-gray-900 border border-green-500 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                            />
+                            <button
+                              onClick={() => handleSalvarGroupId(link.id, rotator.id)}
+                              className="p-1 rounded bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Check size={12} />
+                            </button>
+                            <button
+                              onClick={() => { setEditandoGroupId(null); setGroupIdEditando('') }}
+                              className="p-1 rounded hover:bg-gray-700 text-gray-400"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setEditandoGroupId(link.id); setGroupIdEditando(link.whatsapp_group_id ?? '') }}
+                            className="flex items-center gap-1.5 text-left w-fit"
+                          >
+                            {link.whatsapp_group_id ? (
+                              <span className="text-[10px] text-gray-500 font-mono">{link.whatsapp_group_id}</span>
+                            ) : (
+                              <span className="text-[10px] text-yellow-500">+ informar Group ID para sincronizar</span>
+                            )}
+                            <Pencil size={10} className="text-gray-600" />
+                          </button>
+                        )}
                       </div>
                     ))}
 
                     {/* Formulário adicionar link */}
-                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <div className="flex flex-col gap-2 pt-1">
                       <input
                         type="url"
                         placeholder="Link do grupo (https://chat.whatsapp.com/...)"
@@ -432,7 +500,7 @@ export default function GruposPage() {
                             [rotator.id]: { ...form, url: e.target.value },
                           }))
                         }
-                        className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
                       />
                       <div className="flex gap-2">
                         <input
@@ -445,7 +513,19 @@ export default function GruposPage() {
                               [rotator.id]: { ...form, nome: e.target.value },
                             }))
                           }
-                          className="flex-1 sm:w-32 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                          className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Group ID (120363...@g.us)"
+                          value={form.groupId ?? ''}
+                          onChange={(e) =>
+                            setNovoLink((prev) => ({
+                              ...prev,
+                              [rotator.id]: { ...form, groupId: e.target.value },
+                            }))
+                          }
+                          className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
                         />
                         <button
                           onClick={() => handleAdicionarLink(rotator.id)}

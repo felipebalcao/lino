@@ -46,16 +46,31 @@ export async function deletarRotator(id: string): Promise<void> {
 export async function adicionarLink(
   rotatorId: string,
   url: string,
-  nome?: string
+  nome?: string,
+  whatsappGroupId?: string
 ): Promise<GruposLink> {
   const { data, error } = await supabase
     .from('grupos_links')
-    .insert({ rotator_id: rotatorId, url, nome: nome?.trim() || null })
+    .insert({
+      rotator_id: rotatorId,
+      url,
+      nome: nome?.trim() || null,
+      whatsapp_group_id: whatsappGroupId?.trim() || null,
+    })
     .select()
     .single()
 
   if (error) throw error
   return data
+}
+
+export async function atualizarGroupId(id: string, whatsappGroupId: string): Promise<void> {
+  const { error } = await supabase
+    .from('grupos_links')
+    .update({ whatsapp_group_id: whatsappGroupId.trim() || null })
+    .eq('id', id)
+
+  if (error) throw error
 }
 
 export async function deletarLink(id: string): Promise<void> {

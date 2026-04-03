@@ -8,8 +8,6 @@ function getSupabase() {
 }
 
 function getUazapiBase(uazapiUrl: string): string {
-  // Remove trailing slash e qualquer path após o host+porta (ex: /send/text, /group/info, etc)
-  // Suporta tanto "https://host/send/text" quanto "https://host"
   try {
     const u = new URL(uazapiUrl)
     return `${u.protocol}//${u.host}`
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const { data: links, error } = await supabase
     .from('grupos_links')
-    .select('id, url')
+    .select('id, url, whatsapp_group_id')
     .eq('rotator_id', rotator_id)
     .eq('ativo', true)
 
@@ -52,14 +50,16 @@ export async function POST(request: NextRequest) {
   const resultados: { id: string; participantes: number | null; erro?: string; detalhe?: string }[] = []
 
   for (const link of links) {
+    if (!link.whatsapp_group_id) {
+      resultados.push({ id: link.id, participantes: null, erro: 'Group ID não informado' })
+      continue
+    }
+
     try {
-      const endpoint = `${uazapiBase}/${uazapiToken}/group/invite/info`
-      const resp = await fetch(endpoint, {
+      const resp = await fetch(`${uazapiBase}/${uazapiToken}/group/info`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ invitecode: link.url }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupjid: link.whatsapp_group_id, force: true }),
       })
 
       const text = await resp.text()
@@ -84,5 +84,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, uazapiBase, resultados })
+  return NextResponse.json({ ok: true, resultados })
 }

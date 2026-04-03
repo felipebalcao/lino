@@ -62,3 +62,24 @@ export interface BaseConhecimento {
   tokens_resposta: number | null
   tokens_total: number | null
 }
+
+export interface GruposRotator {
+  id: string
+  nome: string
+  slug: string
+  criado_em: string
+}
+
+export interface GruposLink {
+  id: string
+  rotator_id: string
+  nome: string | null
+  url: string
+  contador_acessos: number
+  ativo: boolean
+  criado_em: string
+}
+
+export interface GruposRotatorComLinks extends GruposRotator {
+  links: GruposLink[]
+}

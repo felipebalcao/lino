@@ -76,6 +76,7 @@ export interface GruposLink {
   nome: string | null
   url: string
   contador_acessos: number
+  participantes: number
   ativo: boolean
   criado_em: string
 }

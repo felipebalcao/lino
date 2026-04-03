@@ -26,9 +26,10 @@ export async function GET(
 
   const { data: link } = await supabase
     .from('grupos_links')
-    .select('id, url, contador_acessos')
+    .select('id, url, contador_acessos, participantes')
     .eq('rotator_id', rotator.id)
     .eq('ativo', true)
+    .order('participantes', { ascending: true })
     .order('contador_acessos', { ascending: true })
     .limit(1)
     .single()

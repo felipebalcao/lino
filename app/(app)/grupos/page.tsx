@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Copy, Plus, Trash2, Link2, ChevronDown, ChevronUp, Check, ToggleLeft, ToggleRight, Pencil, X } from 'lucide-react'
+import { Copy, Plus, Trash2, Link2, ChevronDown, ChevronUp, Check, ToggleLeft, ToggleRight, Pencil, X, RefreshCw } from 'lucide-react'
 import {
   getRotators,
   criarRotator,
@@ -33,6 +33,9 @@ export default function GruposPage() {
   const [editando, setEditando] = useState<string | null>(null)
   const [nomeEditando, setNomeEditando] = useState('')
   const [salvandoNome, setSalvandoNome] = useState(false)
+
+  // Sincronização
+  const [sincronizando, setSincronizando] = useState<string | null>(null)
 
   // Feedback de cópia
   const [copiado, setCopiado] = useState<string | null>(null)
@@ -136,6 +139,39 @@ export default function GruposPage() {
       )
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : 'Erro ao atualizar link')
+    }
+  }
+
+  async function handleSincronizar(rotatorId: string) {
+    try {
+      setSincronizando(rotatorId)
+      const resp = await fetch('/api/grupos/sincronizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rotator_id: rotatorId }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error ?? 'Erro ao sincronizar')
+
+      // Atualiza participantes localmente
+      setRotators((prev) =>
+        prev.map((r) => {
+          if (r.id !== rotatorId) return r
+          return {
+            ...r,
+            links: r.links.map((l) => {
+              const resultado = data.resultados?.find((res: { id: string; participantes: number | null }) => res.id === l.id)
+              return resultado?.participantes != null
+                ? { ...l, participantes: resultado.participantes }
+                : l
+            }),
+          }
+        })
+      )
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : 'Erro ao sincronizar')
+    } finally {
+      setSincronizando(null)
     }
   }
 
@@ -290,6 +326,15 @@ export default function GruposPage() {
                         </button>
 
                         <button
+                          onClick={() => handleSincronizar(rotator.id)}
+                          disabled={sincronizando === rotator.id}
+                          className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-blue-400 transition-colors shrink-0 disabled:opacity-50"
+                          title="Sincronizar participantes via UAZAPI"
+                        >
+                          <RefreshCw size={14} className={sincronizando === rotator.id ? 'animate-spin' : ''} />
+                        </button>
+
+                        <button
                           onClick={() => copiarLink(rotator.slug)}
                           className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors shrink-0"
                           title="Copiar link público"
@@ -341,7 +386,10 @@ export default function GruposPage() {
                           )}
                           <p className="text-xs text-gray-400 truncate">{link.url}</p>
                         </div>
-                        <span className="text-xs text-gray-500 shrink-0">{link.contador_acessos} acesso{link.contador_acessos !== 1 ? 's' : ''}</span>
+                        <div className="flex flex-col items-end shrink-0 gap-0.5">
+                          <span className="text-xs text-blue-400">{link.participantes} part.</span>
+                          <span className="text-xs text-gray-500">{link.contador_acessos} acesso{link.contador_acessos !== 1 ? 's' : ''}</span>
+                        </div>
 
                         <button
                           onClick={() => handleToggleLink(rotator.id, link)}

@@ -21,22 +21,33 @@ function formatarData(dataISO: string) {
   return `${dia}/${mes}/${ano}`
 }
 
-const MAX_DIAS = 20
-
 function hoje() { return new Date().toISOString().slice(0, 10) }
 function haNDias(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10) }
 function addDias(iso: string, n: number) {
   const d = new Date(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10)
 }
 
+function useMaxDias() {
+  const [maxDias, setMaxDias] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 15 : 20
+  )
+  useEffect(() => {
+    function atualizar() { setMaxDias(window.innerWidth < 768 ? 15 : 20) }
+    window.addEventListener('resize', atualizar)
+    return () => window.removeEventListener('resize', atualizar)
+  }, [])
+  return maxDias
+}
+
 export default function DashboardPage() {
+  const MAX_DIAS = useMaxDias()
   const [totalClientes, setTotalClientes] = useState<number | null>(null)
   const [clientesPorDia, setClientesPorDia] = useState<DadosDia[]>([])
   const [atendimento, setAtendimento] = useState<DadosAtendimento[]>([])
   const [kanban, setKanban] = useState<{ nome: string; total: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [startDate, setStartDate] = useState(haNDias(MAX_DIAS))
+  const [startDate, setStartDate] = useState(haNDias(typeof window !== 'undefined' && window.innerWidth < 768 ? 15 : 20))
   const [endDate, setEndDate] = useState(hoje())
 
   function handleStartChange(val: string) {

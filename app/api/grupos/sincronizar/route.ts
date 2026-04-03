@@ -56,9 +56,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const resp = await fetch(`${uazapiBase}/${uazapiToken}/group/info`, {
+      const instanceToken = '97361a80-1d97-4894-b1b7-99a74fc18b15'
+      const resp = await fetch(`${uazapiBase}/group/info`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'token': instanceToken,
+        },
         body: JSON.stringify({ groupjid: link.whatsapp_group_id, force: true }),
       })
 

@@ -53,12 +53,11 @@ export async function POST(request: NextRequest) {
 
   for (const link of links) {
     try {
-      const endpoint = `${uazapiBase}/group/invite/info`
+      const endpoint = `${uazapiBase}/${uazapiToken}/group/invite/info`
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'token': uazapiToken,
         },
         body: JSON.stringify({ invitecode: link.url }),
       })

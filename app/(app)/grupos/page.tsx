@@ -52,6 +52,42 @@ export default function GruposPage() {
     carregar()
   }, [])
 
+  // Auto-sincronização a cada 2 minutos para todos os rotators com links ativos
+  useEffect(() => {
+    const intervalo = setInterval(async () => {
+      const ids = rotators
+        .filter((r) => r.links.some((l) => l.ativo && l.whatsapp_group_id))
+        .map((r) => r.id)
+
+      for (const id of ids) {
+        try {
+          const resp = await fetch('/api/grupos/sincronizar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rotator_id: id }),
+          })
+          const data = await resp.json()
+          if (!resp.ok) continue
+
+          setRotators((prev) =>
+            prev.map((r) => {
+              if (r.id !== id) return r
+              return {
+                ...r,
+                links: r.links.map((l) => {
+                  const resultado = data.resultados?.find((res: { id: string; participantes: number | null }) => res.id === l.id)
+                  return resultado?.participantes != null ? { ...l, participantes: resultado.participantes } : l
+                }),
+              }
+            })
+          )
+        } catch { /* silencioso */ }
+      }
+    }, 2 * 60 * 1000)
+
+    return () => clearInterval(intervalo)
+  }, [rotators])
+
   async function carregar() {
     try {
       setCarregando(true)

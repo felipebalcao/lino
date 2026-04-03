@@ -29,6 +29,15 @@ export async function criarRotator(nome: string): Promise<GruposRotator> {
   return data
 }
 
+export async function renomearRotator(id: string, nome: string): Promise<void> {
+  const { error } = await supabase
+    .from('grupos_rotators')
+    .update({ nome })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
 export async function deletarRotator(id: string): Promise<void> {
   const { error } = await supabase.from('grupos_rotators').delete().eq('id', id)
   if (error) throw error

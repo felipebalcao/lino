@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Copy, Plus, Trash2, Link2, ChevronDown, ChevronUp, Check, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Copy, Plus, Trash2, Link2, ChevronDown, ChevronUp, Check, ToggleLeft, ToggleRight, Pencil, X } from 'lucide-react'
 import {
   getRotators,
   criarRotator,
   deletarRotator,
+  renomearRotator,
   adicionarLink,
   deletarLink,
   toggleLink,
@@ -27,6 +28,11 @@ export default function GruposPage() {
   // Formulário de novo link por rotator
   const [novoLink, setNovoLink] = useState<Record<string, { url: string; nome: string }>>({})
   const [adicionandoLink, setAdicionandoLink] = useState<string | null>(null)
+
+  // Edição de nome
+  const [editando, setEditando] = useState<string | null>(null)
+  const [nomeEditando, setNomeEditando] = useState('')
+  const [salvandoNome, setSalvandoNome] = useState(false)
 
   // Feedback de cópia
   const [copiado, setCopiado] = useState<string | null>(null)
@@ -133,6 +139,32 @@ export default function GruposPage() {
     }
   }
 
+  function iniciarEdicao(rotator: GruposRotatorComLinks) {
+    setEditando(rotator.id)
+    setNomeEditando(rotator.nome)
+  }
+
+  function cancelarEdicao() {
+    setEditando(null)
+    setNomeEditando('')
+  }
+
+  async function handleRenomear(id: string) {
+    if (!nomeEditando.trim()) return
+    try {
+      setSalvandoNome(true)
+      await renomearRotator(id, nomeEditando.trim())
+      setRotators((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, nome: nomeEditando.trim() } : r))
+      )
+      cancelarEdicao()
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : 'Erro ao renomear grupo')
+    } finally {
+      setSalvandoNome(false)
+    }
+  }
+
   function copiarLink(slug: string) {
     navigator.clipboard.writeText(`${origem}/g/${slug}`)
     setCopiado(slug)
@@ -157,7 +189,7 @@ export default function GruposPage() {
       </div>
 
       {/* Criar novo rotator */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <input
           type="text"
           placeholder="Nome do grupo (ex: Grupo VIP)"
@@ -169,7 +201,7 @@ export default function GruposPage() {
         <button
           onClick={handleCriarRotator}
           disabled={criandoRotator || !nomeNovoRotator.trim()}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus size={16} />
           {criandoRotator ? 'Criando...' : 'Novo grupo'}
@@ -201,48 +233,90 @@ export default function GruposPage() {
             return (
               <div key={rotator.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
                 {/* Header do card */}
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <button
-                    onClick={() => toggleExpandido(rotator.id)}
-                    className="flex-1 flex items-center gap-3 text-left"
-                  >
-                    {expandido ? (
-                      <ChevronUp size={16} className="text-gray-400 shrink-0" />
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {editando === rotator.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={nomeEditando}
+                          onChange={(e) => setNomeEditando(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenomear(rotator.id)
+                            if (e.key === 'Escape') cancelarEdicao()
+                          }}
+                          className="flex-1 bg-gray-900 border border-green-500 rounded-lg px-3 py-1 text-sm text-white focus:outline-none"
+                        />
+                        <button
+                          onClick={() => handleRenomear(rotator.id)}
+                          disabled={salvandoNome || !nomeEditando.trim()}
+                          className="p-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white transition-colors shrink-0"
+                          title="Salvar"
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          onClick={cancelarEdicao}
+                          className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors shrink-0"
+                          title="Cancelar"
+                        >
+                          <X size={14} />
+                        </button>
+                      </>
                     ) : (
-                      <ChevronDown size={16} className="text-gray-400 shrink-0" />
-                    )}
-                    <span className="font-semibold text-white">{rotator.nome}</span>
-                    <span className="text-xs text-gray-400">
-                      {ativos}/{rotator.links.length} grupo{rotator.links.length !== 1 ? 's' : ''} ativo{ativos !== 1 ? 's' : ''}
-                    </span>
-                  </button>
+                      <>
+                        <button
+                          onClick={() => toggleExpandido(rotator.id)}
+                          className="flex-1 flex items-center gap-2 text-left min-w-0"
+                        >
+                          {expandido ? (
+                            <ChevronUp size={16} className="text-gray-400 shrink-0" />
+                          ) : (
+                            <ChevronDown size={16} className="text-gray-400 shrink-0" />
+                          )}
+                          <span className="font-semibold text-white truncate">{rotator.nome}</span>
+                          <span className="text-xs text-gray-400 shrink-0">
+                            {ativos}/{rotator.links.length} ativo{ativos !== 1 ? 's' : ''}
+                          </span>
+                        </button>
 
-                  {/* Link público + botão copiar */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 max-w-[220px]">
-                      <Link2 size={12} className="text-green-400 shrink-0" />
-                      <span className="text-xs text-gray-300 truncate">/g/{rotator.slug}</span>
-                    </div>
-                    <button
-                      onClick={() => copiarLink(rotator.slug)}
-                      className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-                      title="Copiar link"
-                    >
-                      {copiado === rotator.slug ? (
-                        <Check size={14} className="text-green-400" />
-                      ) : (
-                        <Copy size={14} />
-                      )}
-                    </button>
+                        <button
+                          onClick={() => iniciarEdicao(rotator)}
+                          className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors shrink-0"
+                          title="Renomear grupo"
+                        >
+                          <Pencil size={14} />
+                        </button>
+
+                        <button
+                          onClick={() => copiarLink(rotator.slug)}
+                          className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors shrink-0"
+                          title="Copiar link público"
+                        >
+                          {copiado === rotator.slug ? (
+                            <Check size={14} className="text-green-400" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeletarRotator(rotator.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors shrink-0"
+                          title="Deletar grupo"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
 
-                  <button
-                    onClick={() => handleDeletarRotator(rotator.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-900/40 text-gray-500 hover:text-red-400 transition-colors"
-                    title="Deletar grupo"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {/* Link público — linha separada, sempre visível */}
+                  <div className="flex items-center gap-1.5 mt-1.5 ml-6">
+                    <Link2 size={11} className="text-green-400 shrink-0" />
+                    <span className="text-xs text-gray-400 truncate">/g/{rotator.slug}</span>
+                  </div>
                 </div>
 
                 {/* Links e formulário */}
@@ -291,7 +365,7 @@ export default function GruposPage() {
                     ))}
 
                     {/* Formulário adicionar link */}
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
                       <input
                         type="url"
                         placeholder="Link do grupo (https://chat.whatsapp.com/...)"
@@ -304,26 +378,28 @@ export default function GruposPage() {
                         }
                         className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
                       />
-                      <input
-                        type="text"
-                        placeholder="Nome (opcional)"
-                        value={form.nome}
-                        onChange={(e) =>
-                          setNovoLink((prev) => ({
-                            ...prev,
-                            [rotator.id]: { ...form, nome: e.target.value },
-                          }))
-                        }
-                        className="w-32 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
-                      />
-                      <button
-                        onClick={() => handleAdicionarLink(rotator.id)}
-                        disabled={adicionandoLink === rotator.id || !form.url.trim()}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
-                      >
-                        <Plus size={13} />
-                        Adicionar
-                      </button>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Nome (opcional)"
+                          value={form.nome}
+                          onChange={(e) =>
+                            setNovoLink((prev) => ({
+                              ...prev,
+                              [rotator.id]: { ...form, nome: e.target.value },
+                            }))
+                          }
+                          className="flex-1 sm:w-32 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                        />
+                        <button
+                          onClick={() => handleAdicionarLink(rotator.id)}
+                          disabled={adicionandoLink === rotator.id || !form.url.trim()}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+                        >
+                          <Plus size={13} />
+                          Adicionar
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -7,6 +7,17 @@ function getSupabase() {
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
+function getUazapiBase(uazapiUrl: string): string {
+  // Remove trailing slash e qualquer path após o host+porta (ex: /send/text, /group/info, etc)
+  // Suporta tanto "https://host/send/text" quanto "https://host"
+  try {
+    const u = new URL(uazapiUrl)
+    return `${u.protocol}//${u.host}`
+  } catch {
+    return uazapiUrl.replace(/\/+$/, '').replace(/\/(send|group|message|chat|instance).*$/, '')
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { rotator_id } = await request.json()
 
@@ -15,7 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   const config = await readConfig()
-  const uazapiBase = config.uazapiUrl?.replace(/\/+$/, '').replace(/\/send\/.*$/, '')
+  const uazapiBase = config.uazapiUrl ? getUazapiBase(config.uazapiUrl) : ''
   const uazapiToken = config.uazapiToken
 
   if (!uazapiBase || !uazapiToken) {
@@ -34,11 +45,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const resultados: { id: string; participantes: number | null; erro?: string }[] = []
+  if (!links || links.length === 0) {
+    return NextResponse.json({ ok: true, resultados: [], aviso: 'Nenhum link ativo encontrado' })
+  }
 
-  for (const link of links ?? []) {
+  const resultados: { id: string; participantes: number | null; erro?: string; detalhe?: string }[] = []
+
+  for (const link of links) {
     try {
-      const resp = await fetch(`${uazapiBase}/group/invite/info`, {
+      const endpoint = `${uazapiBase}/group/invite/info`
+      const resp = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,13 +63,16 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ invitecode: link.url }),
       })
 
+      const text = await resp.text()
+      let data: Record<string, unknown> = {}
+      try { data = JSON.parse(text) } catch { /* não era JSON */ }
+
       if (!resp.ok) {
-        resultados.push({ id: link.id, participantes: null, erro: `HTTP ${resp.status}` })
+        resultados.push({ id: link.id, participantes: null, erro: `HTTP ${resp.status}`, detalhe: text.slice(0, 200) })
         continue
       }
 
-      const data = await resp.json()
-      const participantes: number = Array.isArray(data.Participants) ? data.Participants.length : 0
+      const participantes: number = Array.isArray(data.Participants) ? (data.Participants as unknown[]).length : 0
 
       await supabase
         .from('grupos_links')
@@ -62,9 +81,9 @@ export async function POST(request: NextRequest) {
 
       resultados.push({ id: link.id, participantes })
     } catch (e: unknown) {
-      resultados.push({ id: link.id, participantes: null, erro: e instanceof Error ? e.message : 'Erro' })
+      resultados.push({ id: link.id, participantes: null, erro: e instanceof Error ? e.message : 'Erro desconhecido' })
     }
   }
 
-  return NextResponse.json({ ok: true, resultados })
+  return NextResponse.json({ ok: true, uazapiBase, resultados })
 }

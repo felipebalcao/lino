@@ -145,6 +145,7 @@ export default function GruposPage() {
   async function handleSincronizar(rotatorId: string) {
     try {
       setSincronizando(rotatorId)
+      setErro(null)
       const resp = await fetch('/api/grupos/sincronizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +154,14 @@ export default function GruposPage() {
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error ?? 'Erro ao sincronizar')
 
-      // Atualiza participantes localmente
+      // Verifica se houve erros individuais
+      const erros = data.resultados?.filter((r: { erro?: string }) => r.erro)
+      if (erros?.length) {
+        const primeiro = erros[0]
+        setErro(`Falha em ${erros.length} link(s): ${primeiro.erro}${primeiro.detalhe ? ` — ${primeiro.detalhe}` : ''}`)
+      }
+
+      // Atualiza participantes localmente para os que funcionaram
       setRotators((prev) =>
         prev.map((r) => {
           if (r.id !== rotatorId) return r

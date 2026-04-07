@@ -8,7 +8,8 @@
       "Bash(cmd /c \"cd \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && git status\")",
       "Bash(cmd /c \"cd /d \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && git status && git diff --name-only\")",
       "Bash(cmd /c \"cd /d \"\"C:\\\\Users\\\\Felipe Rios\\\\Documents\\\\lino\"\" && npx tsc --noEmit 2>&1\")",
-      "Bash(find '/c/Users/Felipe Rios/Documents/lino' -type f \\\\\\(-name *.json -o -name *.env* \\\\\\) ! -path */node_modules/*)"
+      "Bash(find '/c/Users/Felipe Rios/Documents/lino' -type f \\\\\\(-name *.json -o -name *.env* \\\\\\) ! -path */node_modules/*)",
+      "WebFetch(domain:docs.uazapi.com)"
     ]
   }
 }

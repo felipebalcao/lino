@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, Send, CheckCircle, AlertCircle, Loader2, ChevronRight, MessageSquare, Users, FileText, X } from 'lucide-react'
 
 type Step = 1 | 2 | 3 | 4
@@ -47,7 +47,44 @@ export default function DisparosPage() {
   const [resultado, setResultado] = useState<{ enviados: number; erros: number } | null>(null)
   const [campanhas, setCampanhas] = useState<Campanha[]>([])
   const [loadingLista, setLoadingLista] = useState(true)
+  const [emojiAberto, setEmojiAberto] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const emojiRef = useRef<HTMLDivElement>(null)
+
+  const EMOJIS = [
+    '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇',
+    '🙂','😉','😍','🥰','😘','😗','😙','😚','🤗','🤩',
+    '😎','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️',
+    '😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡',
+    '🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤔',
+    '🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦',
+    '👍','👎','👌','✌️','🤞','🤟','🤙','👋','🙏','💪',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💯',
+    '🔥','⭐','✨','🎉','🎊','🎁','🏆','👑','💰','💎',
+    '✅','❌','⚠️','📢','📣','💬','📱','💻','🛒','🚀',
+  ]
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setEmojiAberto(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function inserirEmoji(emoji: string) {
+    const textarea = document.getElementById('editor-msg') as HTMLTextAreaElement
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const novo = mensagem.slice(0, start) + emoji + mensagem.slice(start)
+    setMensagem(novo)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length)
+    }, 0)
+  }
 
   useEffect(() => {
     if (view === 'lista') carregarCampanhas()
@@ -348,6 +385,27 @@ export default function DisparosPage() {
                   className="px-2.5 py-1 text-sm line-through border border-gray-200 rounded hover:bg-gray-100"
                   title="Tachado"
                 >S</button>
+                {/* Emoji picker */}
+                <div ref={emojiRef} className="relative">
+                  <button
+                    onClick={() => setEmojiAberto(v => !v)}
+                    className="px-2.5 py-1 text-sm border border-gray-200 rounded hover:bg-gray-100"
+                    title="Emoji"
+                  >😊</button>
+                  {emojiAberto && (
+                    <div className="absolute left-0 top-8 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-72">
+                      <div className="grid grid-cols-10 gap-1 max-h-48 overflow-y-auto">
+                        {EMOJIS.map((e) => (
+                          <button
+                            key={e}
+                            onClick={() => inserirEmoji(e)}
+                            className="text-xl hover:bg-gray-100 rounded p-0.5 leading-none"
+                          >{e}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <textarea
                 id="editor-msg"

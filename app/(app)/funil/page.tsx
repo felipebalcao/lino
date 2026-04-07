@@ -109,45 +109,40 @@ export default function FunilPage() {
             {dados.every(d => d.total === 0) ? (
               <p className="text-gray-400 text-sm text-center py-8">Nenhum evento registrado no período.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="flex flex-col items-center gap-0 w-full">
                 {dados.map((etapa, i) => {
-                  const largura = maxTotal > 0 ? Math.max((etapa.total / maxTotal) * 100, 2) : 2
+                  const pct = maxTotal > 0 ? Math.max((etapa.total / maxTotal) * 100, 8) : 8
+                  // Funil: largura vai de 100% no topo até ~30% na base
+                  const larguraFunil = 100 - (i * (70 / (dados.length - 1)))
+                  const largura = Math.max(pct * (larguraFunil / 100), 8)
+
                   return (
-                    <div key={etapa.event_name}>
-                      {/* Seta de conversão entre etapas */}
-                      {i > 0 && etapa.conversao !== null && (
-                        <div className="flex items-center gap-2 py-1 pl-2">
-                          <span className="text-gray-300 text-lg">↓</span>
+                    <div key={etapa.event_name} className="w-full flex flex-col items-center">
+                      {/* Indicador de conversão */}
+                      {i > 0 && (
+                        <div className="flex items-center gap-1.5 py-1.5">
+                          <span className="text-gray-300 text-sm">↓</span>
                           <span className="text-xs text-gray-400">
-                            {etapa.conversao}% avançaram para{' '}
-                            <span className="font-medium text-gray-600">{etapa.label}</span>
+                            {etapa.conversao !== null ? (
+                              <><span className="font-semibold text-gray-600">{etapa.conversao}%</span> converteram</>
+                            ) : '—'}
                           </span>
                         </div>
                       )}
 
-                      {/* Barra da etapa */}
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-600 font-medium w-24 shrink-0">{etapa.label}</span>
-                        <div className="flex-1 relative h-10 bg-gray-50 rounded-lg overflow-hidden">
-                          <div
-                            className="h-full rounded-lg flex items-center px-3 transition-all duration-700"
-                            style={{ width: `${largura}%`, backgroundColor: etapa.cor }}
-                          >
-                            {largura > 15 && (
-                              <span className="text-white text-sm font-semibold">
-                                {etapa.total.toLocaleString('pt-BR')}
-                              </span>
-                            )}
-                          </div>
-                          {largura <= 15 && (
-                            <span className="absolute left-[calc(2%+12px)] top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-700">
-                              {etapa.total.toLocaleString('pt-BR')}
-                            </span>
-                          )}
+                      {/* Bloco do funil */}
+                      <div
+                        className="flex items-center justify-center h-12 rounded-lg transition-all duration-700 relative group"
+                        style={{ width: `${largura}%`, backgroundColor: etapa.cor }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-white font-semibold text-sm">{etapa.label}</span>
+                          <span className="text-white/80 text-sm">·</span>
+                          <span className="text-white font-bold text-sm">{etapa.total.toLocaleString('pt-BR')}</span>
+                          <span className="text-white/70 text-xs">
+                            ({totalGeral > 0 ? Math.round((etapa.total / totalGeral) * 100) : 0}%)
+                          </span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-700 w-12 text-right shrink-0">
-                          {totalGeral > 0 ? Math.round((etapa.total / totalGeral) * 100) : 0}%
-                        </span>
                       </div>
                     </div>
                   )

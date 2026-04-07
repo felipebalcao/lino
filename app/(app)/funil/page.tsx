@@ -138,7 +138,7 @@ export default function FunilPage() {
                       />
 
                       {/* Label abaixo da barra — sempre visível */}
-                      <div className="flex items-center gap-2 mt-1.5 mb-0.5">
+                      <div className="flex items-center gap-2 mt-1.5 mb-0.5 flex-wrap justify-center">
                         <span className="text-sm font-semibold text-gray-700">{etapa.label}</span>
                         <span className="text-sm font-bold" style={{ color: etapa.cor }}>
                           {etapa.total.toLocaleString('pt-BR')}
@@ -146,6 +146,11 @@ export default function FunilPage() {
                         <span className="text-xs text-gray-400">
                           ({totalGeral > 0 ? Math.round((etapa.total / totalGeral) * 100) : 0}%)
                         </span>
+                        {etapa.valor > 0 && (
+                          <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            R$ {etapa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )

@@ -146,7 +146,7 @@ export default function FunilPage() {
                         <span className="text-xs text-gray-400">
                           ({totalGeral > 0 ? Math.round((etapa.total / totalGeral) * 100) : 0}%)
                         </span>
-                        {etapa.valor > 0 && (
+                        {etapa.valor > 0 && ['InitiateCheckout', 'AddToCart', 'Purchase'].includes(etapa.event_name) && (
                           <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                             R$ {etapa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>

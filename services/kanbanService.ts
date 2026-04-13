@@ -59,6 +59,7 @@ export async function getClientesPorSecao(): Promise<Record<string, Cliente[]>> 
     .from('clientes')
     .select('*')
     .order('nome', { ascending: true })
+    .limit(500)
 
   if (error) throw error
 
@@ -119,6 +120,7 @@ export async function getClientesPorStatus(): Promise<Record<string, Cliente[]>>
     .from('clientes')
     .select('*')
     .order('nome', { ascending: true })
+    .limit(500)
 
   if (error) throw error
 

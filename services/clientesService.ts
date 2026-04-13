@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { Cliente, ClienteComUltimaMensagem, MensagemWhatsapp } from '@/types'
+import { Cliente, ClienteComUltimaMensagem } from '@/types'
 
 export async function getTotalClientes(): Promise<number> {
   const { count, error } = await supabase
@@ -86,42 +86,22 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
 }
 
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
-  // Busca últimas mensagens ordenadas por data
-  const { data: mensagens, error: errMensagens } = await supabase
-    .from('ultima_mensagem_por_cliente')
-    .select('*')
-    .order('data_criacao', { ascending: false })
-
-  if (errMensagens) throw errMensagens
-  if (!mensagens || mensagens.length === 0) return []
-
-  // Extrai telefones únicos da view
-  const telefones = [...new Set(mensagens.map((m) => m.numero_cliente).filter(Boolean))]
-
-  // Busca apenas os clientes que têm mensagens
-  const { data: clientesData, error: errClientes } = await supabase
+  const { data, error } = await supabase
     .from('clientes')
     .select('*')
-    .in('telefone', telefones)
+    .not('dt_ultima_mensagem', 'is', null)
+    .order('dt_ultima_mensagem', { ascending: false })
 
-  if (errClientes) throw errClientes
+  if (error) throw error
 
-  // Deduplicar clientes por telefone — manter o de maior id
-  const clientePorTelefone: Record<string, Cliente> = {}
-  for (const c of (clientesData ?? []) as Cliente[]) {
+  // Deduplicar por telefone — manter o de maior id
+  const unicosPorTelefone: Record<string, Cliente> = {}
+  for (const c of (data ?? []) as Cliente[]) {
     if (!c.telefone) continue
-    if (!clientePorTelefone[c.telefone] || c.id > clientePorTelefone[c.telefone].id) {
-      clientePorTelefone[c.telefone] = c
+    if (!unicosPorTelefone[c.telefone] || c.id > unicosPorTelefone[c.telefone].id) {
+      unicosPorTelefone[c.telefone] = c
     }
   }
 
-  // Monta resultado com a última mensagem
-  const resultado: ClienteComUltimaMensagem[] = []
-  for (const msg of mensagens) {
-    const cliente = clientePorTelefone[msg.numero_cliente]
-    if (!cliente) continue
-    resultado.push({ ...cliente, ultima_mensagem: msg as MensagemWhatsapp })
-  }
-
-  return resultado
+  return Object.values(unicosPorTelefone) as ClienteComUltimaMensagem[]
 }

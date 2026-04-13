@@ -86,35 +86,42 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
 }
 
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
-  // Busca clientes e view em paralelo
-  const [clientesRes, mensagensRes] = await Promise.all([
-    supabase.from('clientes').select('*').limit(500),
-    supabase.from('ultima_mensagem_por_cliente').select('*').order('data_criacao', { ascending: false }),
-  ])
+  // Busca últimas mensagens ordenadas por data
+  const { data: mensagens, error: errMensagens } = await supabase
+    .from('ultima_mensagem_por_cliente')
+    .select('*')
+    .order('data_criacao', { ascending: false })
 
-  if (clientesRes.error) throw clientesRes.error
-  if (mensagensRes.error) throw mensagensRes.error
+  if (errMensagens) throw errMensagens
+  if (!mensagens || mensagens.length === 0) return []
+
+  // Extrai telefones únicos da view
+  const telefones = [...new Set(mensagens.map((m) => m.numero_cliente).filter(Boolean))]
+
+  // Busca apenas os clientes que têm mensagens
+  const { data: clientesData, error: errClientes } = await supabase
+    .from('clientes')
+    .select('*')
+    .in('telefone', telefones)
+
+  if (errClientes) throw errClientes
 
   // Deduplicar clientes por telefone — manter o de maior id
   const clientePorTelefone: Record<string, Cliente> = {}
-  for (const c of (clientesRes.data ?? []) as Cliente[]) {
+  for (const c of (clientesData ?? []) as Cliente[]) {
     if (!c.telefone) continue
     if (!clientePorTelefone[c.telefone] || c.id > clientePorTelefone[c.telefone].id) {
       clientePorTelefone[c.telefone] = c
     }
   }
 
-  // Monta resultado com a última mensagem e ordena por data_criacao desc
+  // Monta resultado com a última mensagem
   const resultado: ClienteComUltimaMensagem[] = []
-  for (const msg of mensagensRes.data ?? []) {
+  for (const msg of mensagens) {
     const cliente = clientePorTelefone[msg.numero_cliente]
     if (!cliente) continue
     resultado.push({ ...cliente, ultima_mensagem: msg as MensagemWhatsapp })
   }
-
-  resultado.sort((a, b) =>
-    new Date(b.ultima_mensagem!.data_criacao).getTime() - new Date(a.ultima_mensagem!.data_criacao).getTime()
-  )
 
   return resultado
 }

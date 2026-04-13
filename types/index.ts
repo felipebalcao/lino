@@ -8,6 +8,7 @@ export interface Cliente {
   kanban_secao_id?: number | null
   origem_app?: string | null
   origem_url?: string | null
+  status_atual?: string | null
 }
 
 export interface MensagemWhatsapp {

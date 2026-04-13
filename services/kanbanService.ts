@@ -114,6 +114,34 @@ export async function getContagemPorSecao(): Promise<{ nome: string; total: numb
   return resultado
 }
 
+export async function getClientesPorStatus(): Promise<Record<string, Cliente[]>> {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .order('nome', { ascending: true })
+
+  if (error) throw error
+
+  // Deduplicar por telefone
+  const unicosPorTelefone: Record<string, Cliente> = {}
+  for (const c of data ?? []) {
+    if (!c.telefone) continue
+    if (!unicosPorTelefone[c.telefone] || c.id > unicosPorTelefone[c.telefone].id) {
+      unicosPorTelefone[c.telefone] = c
+    }
+  }
+  const clientes = Object.values(unicosPorTelefone)
+
+  const grupos: Record<string, Cliente[]> = {}
+  for (const c of clientes) {
+    const key = c.status_atual || 'sem_status'
+    if (!grupos[key]) grupos[key] = []
+    grupos[key].push(c)
+  }
+
+  return grupos
+}
+
 export async function moverClienteParaSecao(
   clienteId: number,
   secaoId: number | null

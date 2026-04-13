@@ -1,10 +1,23 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { getSecoes, criarSecao, deletarSecao, getClientesPorSecao, moverClienteParaSecao, atualizarCorSecao } from '@/services/kanbanService'
+import { getSecoes, criarSecao, deletarSecao, getClientesPorSecao, getClientesPorStatus, moverClienteParaSecao, atualizarCorSecao } from '@/services/kanbanService'
 import { KanbanSecao, Cliente } from '@/types'
 import Avatar from '@/components/Avatar'
 import { Plus, X, Loader2, Kanban } from 'lucide-react'
+
+const STATUS_COLUNAS = [
+  { key: 'novo_contato', label: 'Novo Contato', cor: '#6366f1' },
+  { key: 'em_atendimento', label: 'Em Atendimento', cor: '#3b82f6' },
+  { key: 'interessado', label: 'Interessado', cor: '#f59e0b' },
+  { key: 'intencao_compra', label: 'Intenção de Compra', cor: '#f97316' },
+  { key: 'carrinho_abandonado', label: 'Carrinho Abandonado', cor: '#ec4899' },
+  { key: 'objecao', label: 'Objeção', cor: '#ef4444' },
+  { key: 'aguardando_cliente', label: 'Aguardando Cliente', cor: '#14b8a6' },
+  { key: 'reclamacao', label: 'Reclamação', cor: '#dc2626' },
+  { key: 'cliente_perdido', label: 'Cliente Perdido', cor: '#64748b' },
+  { key: 'concluido', label: 'Concluído', cor: '#22c55e' },
+]
 
 const FB_EVENTOS = [
   { value: 'Lead', label: 'Lead (gerou interesse)' },
@@ -50,8 +63,10 @@ async function enviarEventoFacebook(clientes: { id: number; nome: string; telefo
 }
 
 export default function KanbanPage() {
+  const [aba, setAba] = useState<'personalizado' | 'por_status'>('personalizado')
   const [secoes, setSecoes] = useState<KanbanSecao[]>([])
   const [clientes, setClientes] = useState<Record<string, Cliente[]>>({})
+  const [clientesPorStatus, setClientesPorStatus] = useState<Record<string, Cliente[]>>({})
   const [loading, setLoading] = useState(true)
   const [novaSecao, setNovaSecao] = useState('')
   const [novaSecaoFb, setNovaSecaoFb] = useState(false)
@@ -66,9 +81,10 @@ export default function KanbanPage() {
   async function carregar() {
     setLoading(true)
     try {
-      const [s, c] = await Promise.all([getSecoes(), getClientesPorSecao()])
+      const [s, c, cs] = await Promise.all([getSecoes(), getClientesPorSecao(), getClientesPorStatus()])
       setSecoes(s)
       setClientes(c)
+      setClientesPorStatus(cs)
     } finally {
       setLoading(false)
     }
@@ -189,10 +205,25 @@ export default function KanbanPage() {
             <Kanban size={22} /> Kanban
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">{secoes.length} seções · {Object.values(clientes).flat().length} clientes</p>
+          {/* Abas */}
+          <div className="flex gap-1 mt-3">
+            <button
+              onClick={() => setAba('personalizado')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${aba === 'personalizado' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Personalizado
+            </button>
+            <button
+              onClick={() => setAba('por_status')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${aba === 'por_status' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Por Status
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {mostrarInput ? (
+          {aba === 'personalizado' && mostrarInput ? (
             <form onSubmit={handleCriarSecao} className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
                 <input
@@ -259,19 +290,66 @@ export default function KanbanPage() {
                 )}
               </div>
             </form>
-          ) : (
+          ) : aba === 'personalizado' ? (
             <button
               onClick={() => setMostrarInput(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Plus size={16} /> Nova seção
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      {/* Board Por Status */}
+      {aba === 'por_status' && (
+        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+          <div className="flex gap-4 h-full px-8 py-6" style={{ minWidth: 'max-content' }}>
+            {STATUS_COLUNAS.map(({ key, label, cor }) => {
+              const cards = clientesPorStatus[key] ?? []
+              return (
+                <div key={key} className="flex flex-col w-72 shrink-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cor }} />
+                    <span className="font-semibold text-gray-800 text-sm">{label}</span>
+                    <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">
+                      {cards.length}
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full mb-2" style={{ backgroundColor: cor }} />
+                  <div
+                    className="flex-1 rounded-xl p-2 space-y-2 overflow-y-auto bg-gray-100 border-2 border-transparent"
+                    style={{ minHeight: '200px', maxHeight: 'calc(100vh - 240px)' }}
+                  >
+                    {cards.length === 0 && (
+                      <div className="flex items-center justify-center h-20 text-gray-400 text-xs">
+                        Nenhum cliente
+                      </div>
+                    )}
+                    {cards.map((cliente) => (
+                      <div
+                        key={cliente.id}
+                        className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar nome={cliente.nome} foto={cliente.foto} size="sm" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{cliente.nome}</p>
+                            <p className="text-xs text-gray-400 truncate">{cliente.cidade || cliente.telefone}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Board Personalizado */}
+      {aba === 'personalizado' && <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-4 h-full px-8 py-6" style={{ minWidth: 'max-content' }}>
           {colunas.map(({ key, nome, secaoId, facebookEvento, cor }) => {
             const cards = clientes[key] ?? []
@@ -378,7 +456,7 @@ export default function KanbanPage() {
             )
           })}
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

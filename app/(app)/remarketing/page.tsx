@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play } from 'lucide-react'
 
 interface Regra {
   id: string
@@ -282,9 +282,38 @@ export default function RemarketingPage() {
                       <span className="text-xs text-gray-400 italic">inativa</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3">{regra.mensagem}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3 mb-3">{regra.mensagem}</p>
+
+                  {/* Webhook URL */}
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <code className="text-xs text-gray-500 truncate flex-1 select-all">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/api/remarketing/executar/{regra.id}
+                    </code>
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/remarketing/executar/${regra.id}`
+                        navigator.clipboard.writeText(url)
+                        mostrarFeedback('ok', 'Webhook copiado!')
+                      }}
+                      title="Copiar webhook"
+                      className="text-gray-400 hover:text-gray-700 shrink-0"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`/api/remarketing/executar/${regra.id}`, { method: 'POST' })
+                      const data = await res.json()
+                      mostrarFeedback('ok', `Executado: ${data.enviados ?? 0} enviados`)
+                    }}
+                    title="Executar agora"
+                    className="text-gray-400 hover:text-green-600 transition-colors"
+                  >
+                    <Play size={16} />
+                  </button>
                   <button
                     onClick={() => toggleAtivo(regra)}
                     title={regra.ativo ? 'Desativar' : 'Ativar'}
@@ -307,7 +336,7 @@ export default function RemarketingPage() {
       )}
 
       <p className="text-xs text-gray-400 mt-6">
-        O sistema executa automaticamente a cada 10 minutos. Cada cliente recebe a mensagem apenas uma vez por regra.
+        Cada cliente recebe a mensagem apenas uma vez por regra. Configure o webhook no n8n com um Schedule a cada 10 minutos.
       </p>
     </div>
   )

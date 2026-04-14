@@ -46,6 +46,7 @@ export default function RemarketingPage() {
   const [logsAbertos, setLogsAbertos] = useState<Record<string, boolean>>({})
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({})
   const [loadingLogs, setLoadingLogs] = useState<Record<string, boolean>>({})
+  const [pendentes, setPendentes] = useState<Record<string, number | null>>({})
 
   // Form nova regra
   const [statusAlvo, setStatusAlvo] = useState(STATUS_OPCOES[0])
@@ -57,6 +58,19 @@ export default function RemarketingPage() {
   useEffect(() => {
     carregarRegras()
   }, [])
+
+  async function carregarPendentes(regras: Regra[]) {
+    const resultados = await Promise.all(
+      regras.map(async (r) => {
+        const res = await fetch(`/api/remarketing/pendentes/${r.id}`)
+        const data = await res.json()
+        return { id: r.id, pendentes: data.pendentes ?? 0 }
+      })
+    )
+    const mapa: Record<string, number> = {}
+    for (const r of resultados) mapa[r.id] = r.pendentes
+    setPendentes(mapa)
+  }
 
   async function toggleLogs(regraId: string) {
     const aberto = logsAbertos[regraId]
@@ -79,8 +93,10 @@ export default function RemarketingPage() {
     setLoading(true)
     const res = await fetch('/api/remarketing/regras')
     const data = await res.json()
-    setRegras(Array.isArray(data) ? data : [])
+    const lista = Array.isArray(data) ? data : []
+    setRegras(lista)
     setLoading(false)
+    if (lista.length > 0) carregarPendentes(lista)
   }
 
   async function criarRegra() {
@@ -330,6 +346,17 @@ export default function RemarketingPage() {
                     <span className="text-xs text-gray-500">
                       intervalo <strong>{regra.intervalo_segundos ?? 3}s</strong>
                     </span>
+                    {pendentes[regra.id] !== undefined ? (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        pendentes[regra.id]! > 0
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {pendentes[regra.id]} pendente{pendentes[regra.id] !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
                     {!regra.ativo && (
                       <span className="text-xs text-gray-400 italic">inativa</span>
                     )}
@@ -406,6 +433,11 @@ export default function RemarketingPage() {
                       const res = await fetch(`/api/remarketing/executar/${regra.id}`, { method: 'POST' })
                       const data = await res.json()
                       mostrarFeedback('ok', `Executado: ${data.enviados ?? 0} enviados`)
+                      // Atualiza pendentes e logs desta regra
+                      const r = await fetch(`/api/remarketing/pendentes/${regra.id}`)
+                      const p = await r.json()
+                      setPendentes((prev) => ({ ...prev, [regra.id]: p.pendentes ?? 0 }))
+                      setLogs((prev) => ({ ...prev, [regra.id]: undefined as unknown as LogEntry[] }))
                     }}
                     title="Executar agora"
                     className="text-gray-400 hover:text-green-600 transition-colors"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play } from 'lucide-react'
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Regra {
   id: string
@@ -35,12 +35,17 @@ function formatarWhatsApp(texto: string): string {
 }
 
 export default function RemarketingPage() {
+  interface LogEntry { telefone: string; nome: string | null; enviado_em: string }
+
   const [regras, setRegras] = useState<Regra[]>([])
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [executando, setExecutando] = useState(false)
   const [feedback, setFeedback] = useState<{ tipo: 'ok' | 'erro'; msg: string } | null>(null)
   const [mostrarForm, setMostrarForm] = useState(false)
+  const [logsAbertos, setLogsAbertos] = useState<Record<string, boolean>>({})
+  const [logs, setLogs] = useState<Record<string, LogEntry[]>>({})
+  const [loadingLogs, setLoadingLogs] = useState<Record<string, boolean>>({})
 
   // Form nova regra
   const [statusAlvo, setStatusAlvo] = useState(STATUS_OPCOES[0])
@@ -52,6 +57,18 @@ export default function RemarketingPage() {
   useEffect(() => {
     carregarRegras()
   }, [])
+
+  async function toggleLogs(regraId: string) {
+    const aberto = logsAbertos[regraId]
+    setLogsAbertos((prev) => ({ ...prev, [regraId]: !aberto }))
+    if (!aberto && !logs[regraId]) {
+      setLoadingLogs((prev) => ({ ...prev, [regraId]: true }))
+      const res = await fetch(`/api/remarketing/logs/${regraId}`)
+      const data = await res.json()
+      setLogs((prev) => ({ ...prev, [regraId]: Array.isArray(data) ? data : [] }))
+      setLoadingLogs((prev) => ({ ...prev, [regraId]: false }))
+    }
+  }
 
   function mostrarFeedback(tipo: 'ok' | 'erro', msg: string) {
     setFeedback({ tipo, msg })
@@ -320,7 +337,7 @@ export default function RemarketingPage() {
                   <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3 mb-3">{regra.mensagem}</p>
 
                   {/* Webhook URL */}
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
                     <code className="text-xs text-gray-500 truncate flex-1 select-all">
                       {typeof window !== 'undefined' ? window.location.origin : ''}/api/remarketing/executar/{regra.id}
                     </code>
@@ -336,6 +353,52 @@ export default function RemarketingPage() {
                       <Copy size={14} />
                     </button>
                   </div>
+
+                  {/* Botão execuções */}
+                  <button
+                    onClick={() => toggleLogs(regra.id)}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    {logsAbertos[regra.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    Execuções
+                  </button>
+
+                  {/* Lista de logs */}
+                  {logsAbertos[regra.id] && (
+                    <div className="mt-2 border border-gray-100 rounded-lg overflow-hidden">
+                      {loadingLogs[regra.id] ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-gray-400 text-xs">
+                          <Loader2 size={13} className="animate-spin" /> Carregando...
+                        </div>
+                      ) : !logs[regra.id] || logs[regra.id].length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-gray-400">Nenhum envio registrado ainda.</p>
+                      ) : (
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="text-left px-4 py-2 font-medium text-gray-500">Nome</th>
+                              <th className="text-left px-4 py-2 font-medium text-gray-500">Telefone</th>
+                              <th className="text-left px-4 py-2 font-medium text-gray-500">Enviado em</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {logs[regra.id].map((log, i) => (
+                              <tr key={i} className="hover:bg-gray-50">
+                                <td className="px-4 py-2 text-gray-700">{log.nome || '—'}</td>
+                                <td className="px-4 py-2 text-gray-500">{log.telefone}</td>
+                                <td className="px-4 py-2 text-gray-400">
+                                  {new Date(log.enviado_em).toLocaleString('pt-BR', {
+                                    day: '2-digit', month: '2-digit', year: '2-digit',
+                                    hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
                   <button

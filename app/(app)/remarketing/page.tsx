@@ -9,6 +9,8 @@ interface Regra {
   tempo_horas: number
   mensagem: string
   ativo: boolean
+  limite: number | null
+  intervalo_segundos: number | null
   created_at: string
 }
 

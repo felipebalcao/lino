@@ -3,10 +3,6 @@
     {
       "path": "/api/relatorio/ads",
       "schedule": "50 2 * * *"
-    },
-    {
-      "path": "/api/remarketing/executar",
-      "schedule": "*/10 * * * *"
     }
   ]
 }

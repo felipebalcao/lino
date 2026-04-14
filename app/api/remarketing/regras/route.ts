@@ -21,15 +21,22 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   const body = await request.json()
-  const { status_alvo, tempo_horas, mensagem } = body
+  const { status_alvo, tempo_horas, mensagem, limite, intervalo_segundos } = body
 
-  if (!status_alvo || !tempo_horas || !mensagem) {
-    return NextResponse.json({ error: 'status_alvo, tempo_horas e mensagem são obrigatórios' }, { status: 400 })
+  if (!status_alvo || !tempo_horas || !mensagem || !limite) {
+    return NextResponse.json({ error: 'status_alvo, tempo_horas, limite e mensagem são obrigatórios' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('remarketing_regras')
-    .insert({ status_alvo, tempo_horas: Number(tempo_horas), mensagem, ativo: true })
+    .insert({
+      status_alvo,
+      tempo_horas: Number(tempo_horas),
+      mensagem,
+      ativo: true,
+      limite: Number(limite),
+      intervalo_segundos: intervalo_segundos ? Number(intervalo_segundos) : 3,
+    })
     .select()
     .single()
 

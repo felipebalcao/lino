@@ -17,6 +17,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (body.tempo_horas !== undefined) updates.tempo_horas = Number(body.tempo_horas)
   if (body.mensagem !== undefined) updates.mensagem = body.mensagem
   if (body.ativo !== undefined) updates.ativo = body.ativo
+  if (body.limite !== undefined) updates.limite = body.limite ? Number(body.limite) : null
+  if (body.intervalo_segundos !== undefined) updates.intervalo_segundos = Number(body.intervalo_segundos)
 
   const { data, error } = await supabase
     .from('remarketing_regras')

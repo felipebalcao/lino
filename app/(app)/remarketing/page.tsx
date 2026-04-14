@@ -43,6 +43,8 @@ export default function RemarketingPage() {
   // Form nova regra
   const [statusAlvo, setStatusAlvo] = useState(STATUS_OPCOES[0])
   const [tempoHoras, setTempoHoras] = useState(24)
+  const [limite, setLimite] = useState<number | ''>(10)
+  const [intervaloSegundos, setIntervaloSegundos] = useState<number>(3)
   const [mensagem, setMensagem] = useState('')
 
   useEffect(() => {
@@ -69,13 +71,15 @@ export default function RemarketingPage() {
       const res = await fetch('/api/remarketing/regras', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status_alvo: statusAlvo, tempo_horas: tempoHoras, mensagem }),
+        body: JSON.stringify({ status_alvo: statusAlvo, tempo_horas: tempoHoras, mensagem, limite, intervalo_segundos: intervaloSegundos }),
       })
       if (!res.ok) throw new Error('Erro ao criar')
       await carregarRegras()
       setMostrarForm(false)
       setMensagem('')
       setTempoHoras(24)
+      setLimite(10)
+      setIntervaloSegundos(3)
       mostrarFeedback('ok', 'Regra criada com sucesso!')
     } catch {
       mostrarFeedback('erro', 'Erro ao criar regra.')
@@ -162,8 +166,8 @@ export default function RemarketingPage() {
       {mostrarForm && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
           <h2 className="font-semibold text-gray-900 mb-5">Nova regra de remarketing</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="col-span-2 md:col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Status alvo</label>
               <select
                 value={statusAlvo}
@@ -176,12 +180,35 @@ export default function RemarketingPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tempo parado (horas)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tempo parado (h)</label>
               <input
                 type="number"
                 min={1}
                 value={tempoHoras}
                 onChange={(e) => setTempoHoras(Number(e.target.value))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Limite <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                placeholder="Ex: 10"
+                value={limite}
+                onChange={(e) => setLimite(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Intervalo (seg)</label>
+              <input
+                type="number"
+                min={1}
+                value={intervaloSegundos}
+                onChange={(e) => setIntervaloSegundos(Number(e.target.value))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
@@ -236,7 +263,7 @@ export default function RemarketingPage() {
             </button>
             <button
               onClick={criarRegra}
-              disabled={salvando || !mensagem.trim()}
+              disabled={salvando || !mensagem.trim() || !limite}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               {salvando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
@@ -277,6 +304,12 @@ export default function RemarketingPage() {
                     </span>
                     <span className="text-xs text-gray-500">
                       parado por <strong>{regra.tempo_horas}h</strong>
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      limite <strong>{regra.limite ?? '—'}</strong>
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      intervalo <strong>{regra.intervalo_segundos ?? 3}s</strong>
                     </span>
                     {!regra.ativo && (
                       <span className="text-xs text-gray-400 italic">inativa</span>

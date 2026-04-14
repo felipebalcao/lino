@@ -38,12 +38,14 @@ async function executarRegra(id: string) {
   const limiteData = new Date(agora.getTime() - regra.tempo_horas * 60 * 60 * 1000)
 
   // Clientes no status alvo parados há mais tempo que o configurado
+  // Ordena por dt_ultima_mensagem ascending (mais antigos primeiro)
   const { data: clientes, error: errClientes } = await supabase
     .from('clientes')
     .select('id, nome, telefone, cidade, dt_ultima_mensagem')
     .eq('status_atual', regra.status_alvo)
     .not('telefone', 'is', null)
     .lt('dt_ultima_mensagem', limiteData.toISOString())
+    .order('dt_ultima_mensagem', { ascending: true })
 
   if (errClientes || !clientes || clientes.length === 0) {
     return NextResponse.json({ ok: true, enviados: 0 })
@@ -57,7 +59,11 @@ async function executarRegra(id: string) {
       unicosPorTelefone[c.telefone] = c
     }
   }
-  const clientesUnicos = Object.values(unicosPorTelefone)
+
+  // Mantém ordem por dt_ultima_mensagem após deduplicação
+  let clientesUnicos = Object.values(unicosPorTelefone).sort(
+    (a, b) => new Date(a.dt_ultima_mensagem).getTime() - new Date(b.dt_ultima_mensagem).getTime()
+  )
 
   // Telefones que já receberam esta regra
   const telefones = clientesUnicos.map((c) => c.telefone)
@@ -69,12 +75,20 @@ async function executarRegra(id: string) {
 
   const jaEnviados = new Set((logs ?? []).map((l) => l.telefone))
 
+  // Filtra já enviados antes de aplicar limite
+  clientesUnicos = clientesUnicos.filter((c) => !jaEnviados.has(c.telefone))
+
+  // Aplica limite de envios por execução
+  if (regra.limite && regra.limite > 0) {
+    clientesUnicos = clientesUnicos.slice(0, regra.limite)
+  }
+
   let enviados = 0
   let erros = 0
+  const intervaloMs = (regra.intervalo_segundos ?? 3) * 1000
 
-  for (const cliente of clientesUnicos) {
-    if (jaEnviados.has(cliente.telefone)) continue
-
+  for (let i = 0; i < clientesUnicos.length; i++) {
+    const cliente = clientesUnicos[i]
     const texto = regra.mensagem
       .replace(/\{\{nome_cliente\}\}/gi, cliente.nome || 'Cliente')
       .replace(/\{\{nome\}\}/gi, cliente.nome || 'Cliente')
@@ -95,6 +109,11 @@ async function executarRegra(id: string) {
       }
     } catch {
       erros++
+    }
+
+    // Aguarda intervalo antes do próximo envio (exceto no último)
+    if (i < clientesUnicos.length - 1 && intervaloMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, intervaloMs))
     }
   }
 

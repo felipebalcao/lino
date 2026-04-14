@@ -4,12 +4,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen, TrendingUp, Users, Menu, X, Filter, Send } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen, TrendingUp, Users, Menu, X, Filter, Send, Bell } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/mensagens', label: 'Mensagens', icon: MessageSquare },
   { href: '/disparos', label: 'Disparos', icon: Send },
+  { href: '/remarketing', label: 'Remarketing', icon: Bell },
   { href: '/kanban', label: 'Kanban', icon: Kanban },
   { href: '/funil', label: 'Funil', icon: Filter },
   { href: '/ads', label: 'Ads', icon: TrendingUp },

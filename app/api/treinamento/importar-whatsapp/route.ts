@@ -35,17 +35,21 @@ export async function GET() {
       const atual = conversa[i]
       const proxima = conversa[i + 1]
 
-      const ehCliente = atual.quem_mandou !== 'Agente'
-      const ehAgente = proxima.quem_mandou === 'Agente'
+      // Par válido: remetentes diferentes (independente do valor exato de quem_mandou)
+      const remetentesDiferentes = atual.quem_mandou !== proxima.quem_mandou
 
-      if (ehCliente && ehAgente) {
-        const pergunta = atual.mensagem?.trim()
-        const resposta = proxima.mensagem?.trim()
+      if (remetentesDiferentes) {
+        // A pergunta é sempre a mensagem do cliente (não-agente)
+        const agentValues = ['agente', 'Agente', 'bot', 'sistema', 'eu']
+        const atualEhAgente = agentValues.includes(atual.quem_mandou)
+
+        const pergunta = (atualEhAgente ? proxima.mensagem : atual.mensagem)?.trim()
+        const resposta = (atualEhAgente ? atual.mensagem : proxima.mensagem)?.trim()
 
         // Filtra mensagens muito curtas ou automáticas
         if (
           pergunta && resposta &&
-          pergunta.length > 10 && resposta.length > 15 &&
+          pergunta.length > 5 && resposta.length > 5 &&
           !pergunta.startsWith('http') && !resposta.startsWith('http')
         ) {
           pares.push({ pergunta, resposta })

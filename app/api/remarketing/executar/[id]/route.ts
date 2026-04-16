@@ -8,6 +8,14 @@ function getSupabase() {
   return createClient(url, key)
 }
 
+function dentroDoHorario(horaInicio: string | null, horaFim: string | null): boolean {
+  if (!horaInicio || !horaFim) return true
+  const agora = new Date()
+  const atual = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`
+  if (horaInicio <= horaFim) return atual >= horaInicio && atual <= horaFim
+  return atual >= horaInicio || atual <= horaFim
+}
+
 async function executarRegra(id: string) {
   const supabase = getSupabase()
 
@@ -32,6 +40,10 @@ async function executarRegra(id: string) {
 
   if (!regra.ativo) {
     return NextResponse.json({ ok: true, enviados: 0, motivo: 'regra inativa' })
+  }
+
+  if (!dentroDoHorario(regra.hora_inicio ?? null, regra.hora_fim ?? null)) {
+    return NextResponse.json({ ok: true, enviados: 0, motivo: 'fora do horário permitido' })
   }
 
   const agora = new Date()
@@ -65,7 +77,7 @@ async function executarRegra(id: string) {
     (a, b) => new Date(a.dt_ultima_mensagem).getTime() - new Date(b.dt_ultima_mensagem).getTime()
   )
 
-  // Telefones que já receberam esta regra
+  // Contagem de envios por telefone para esta regra
   const telefones = clientesUnicos.map((c) => c.telefone)
   const { data: logs } = await supabase
     .from('remarketing_logs')
@@ -73,10 +85,14 @@ async function executarRegra(id: string) {
     .eq('regra_id', regra.id)
     .in('telefone', telefones)
 
-  const jaEnviados = new Set((logs ?? []).map((l) => l.telefone))
+  const maxRep = regra.max_repeticoes ?? 1
+  const contagemEnvios: Record<string, number> = {}
+  for (const log of logs ?? []) {
+    contagemEnvios[log.telefone] = (contagemEnvios[log.telefone] ?? 0) + 1
+  }
 
-  // Filtra já enviados antes de aplicar limite
-  clientesUnicos = clientesUnicos.filter((c) => !jaEnviados.has(c.telefone))
+  // Filtra clientes que ainda não atingiram o máximo de repetições
+  clientesUnicos = clientesUnicos.filter((c) => (contagemEnvios[c.telefone] ?? 0) < maxRep)
 
   // Aplica limite de envios por execução
   if (regra.limite && regra.limite > 0) {

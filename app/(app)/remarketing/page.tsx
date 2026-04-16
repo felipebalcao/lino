@@ -11,6 +11,9 @@ interface Regra {
   ativo: boolean
   limite: number | null
   intervalo_segundos: number | null
+  hora_inicio: string | null
+  hora_fim: string | null
+  max_repeticoes: number | null
   created_at: string
 }
 
@@ -53,6 +56,9 @@ export default function RemarketingPage() {
   const [tempoHoras, setTempoHoras] = useState(24)
   const [limite, setLimite] = useState<number | ''>(10)
   const [intervaloSegundos, setIntervaloSegundos] = useState<number>(3)
+  const [horaInicio, setHoraInicio] = useState('')
+  const [horaFim, setHoraFim] = useState('')
+  const [maxRepeticoes, setMaxRepeticoes] = useState<number>(1)
   const [mensagem, setMensagem] = useState('')
 
   useEffect(() => {
@@ -106,7 +112,7 @@ export default function RemarketingPage() {
       const res = await fetch('/api/remarketing/regras', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status_alvo: statusAlvo, tempo_horas: tempoHoras, mensagem, limite, intervalo_segundos: intervaloSegundos }),
+        body: JSON.stringify({ status_alvo: statusAlvo, tempo_horas: tempoHoras, mensagem, limite, intervalo_segundos: intervaloSegundos, hora_inicio: horaInicio || null, hora_fim: horaFim || null, max_repeticoes: maxRepeticoes }),
       })
       if (!res.ok) throw new Error('Erro ao criar')
       await carregarRegras()
@@ -115,6 +121,9 @@ export default function RemarketingPage() {
       setTempoHoras(24)
       setLimite(10)
       setIntervaloSegundos(3)
+      setHoraInicio('')
+      setHoraFim('')
+      setMaxRepeticoes(1)
       mostrarFeedback('ok', 'Regra criada com sucesso!')
     } catch {
       mostrarFeedback('erro', 'Erro ao criar regra.')
@@ -249,6 +258,44 @@ export default function RemarketingPage() {
             </div>
           </div>
 
+          {/* Janela de horário e repetições */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Horário início</label>
+              <input
+                type="time"
+                value={horaInicio}
+                onChange={(e) => setHoraInicio(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Horário fim</label>
+              <input
+                type="time"
+                value={horaFim}
+                onChange={(e) => setHoraFim(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Repetições por cliente</label>
+              <input
+                type="number"
+                min={1}
+                value={maxRepeticoes}
+                onChange={(e) => setMaxRepeticoes(Number(e.target.value))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="flex items-end pb-2">
+              <p className="text-xs text-gray-400 leading-tight">
+                Sem horário = qualquer hora.<br />
+                Repetições = quantas vezes cada cliente pode receber.
+              </p>
+            </div>
+          </div>
+
           <div className="mb-2">
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Mensagem — use{' '}
@@ -345,6 +392,14 @@ export default function RemarketingPage() {
                     </span>
                     <span className="text-xs text-gray-500">
                       intervalo <strong>{regra.intervalo_segundos ?? 3}s</strong>
+                    </span>
+                    {regra.hora_inicio && regra.hora_fim && (
+                      <span className="text-xs text-gray-500">
+                        horário <strong>{regra.hora_inicio}–{regra.hora_fim}</strong>
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500">
+                      repete <strong>{regra.max_repeticoes ?? 1}×</strong>
                     </span>
                     {pendentes[regra.id] !== undefined ? (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -466,7 +521,7 @@ export default function RemarketingPage() {
       )}
 
       <p className="text-xs text-gray-400 mt-6">
-        Cada cliente recebe a mensagem apenas uma vez por regra. Configure o webhook no n8n com um Schedule a cada 10 minutos.
+        O número de repetições define quantas vezes cada cliente pode receber a mensagem de uma mesma regra. Configure o webhook no n8n com um Schedule a cada 10 minutos.
       </p>
     </div>
   )

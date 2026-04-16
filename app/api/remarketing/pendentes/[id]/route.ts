@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   // Busca a regra
   const { data: regra, error: errRegra } = await supabase
     .from('remarketing_regras')
-    .select('status_alvo, tempo_horas')
+    .select('status_alvo, tempo_horas, max_repeticoes')
     .eq('id', id)
     .single()
 
@@ -42,15 +42,19 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
   const telefones = Object.keys(unicosPorTelefone)
 
-  // Exclui os que já receberam
+  // Conta envios por telefone
   const { data: logs } = await supabase
     .from('remarketing_logs')
     .select('telefone')
     .eq('regra_id', id)
     .in('telefone', telefones)
 
-  const jaEnviados = new Set((logs ?? []).map((l) => l.telefone))
-  const pendentes = telefones.filter((t) => !jaEnviados.has(t)).length
+  const maxRep = regra.max_repeticoes ?? 1
+  const contagemEnvios: Record<string, number> = {}
+  for (const log of logs ?? []) {
+    contagemEnvios[log.telefone] = (contagemEnvios[log.telefone] ?? 0) + 1
+  }
+  const pendentes = telefones.filter((t) => (contagemEnvios[t] ?? 0) < maxRep).length
 
   return NextResponse.json({ pendentes })
 }

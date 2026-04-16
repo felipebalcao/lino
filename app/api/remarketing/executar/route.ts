@@ -8,6 +8,14 @@ function getSupabase() {
   return createClient(url, key)
 }
 
+function dentroDoHorario(horaInicio: string | null, horaFim: string | null): boolean {
+  if (!horaInicio || !horaFim) return true
+  const agora = new Date()
+  const atual = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`
+  if (horaInicio <= horaFim) return atual >= horaInicio && atual <= horaFim
+  return atual >= horaInicio || atual <= horaFim
+}
+
 export async function POST() {
   const supabase = getSupabase()
 
@@ -33,6 +41,12 @@ export async function POST() {
   const resultados: { regra_id: string; status_alvo: string; enviados: number; erros: number }[] = []
 
   for (const regra of regras) {
+    // Verifica janela de horário
+    if (!dentroDoHorario(regra.hora_inicio ?? null, regra.hora_fim ?? null)) {
+      resultados.push({ regra_id: regra.id, status_alvo: regra.status_alvo, enviados: 0, erros: 0 })
+      continue
+    }
+
     const limiteData = new Date(agora.getTime() - regra.tempo_horas * 60 * 60 * 1000)
 
     // Clientes no status alvo com dt_ultima_mensagem mais antiga que o limite
@@ -58,7 +72,7 @@ export async function POST() {
     }
     const clientesUnicos = Object.values(unicosPorTelefone)
 
-    // Busca logs desta regra — telefones já enviados
+    // Busca logs desta regra — conta envios por telefone
     const telefones = clientesUnicos.map((c) => c.telefone)
     const { data: logs } = await supabase
       .from('remarketing_logs')
@@ -66,13 +80,17 @@ export async function POST() {
       .eq('regra_id', regra.id)
       .in('telefone', telefones)
 
-    const jaEnviados = new Set((logs ?? []).map((l) => l.telefone))
+    const maxRep = regra.max_repeticoes ?? 1
+    const contagemEnvios: Record<string, number> = {}
+    for (const log of logs ?? []) {
+      contagemEnvios[log.telefone] = (contagemEnvios[log.telefone] ?? 0) + 1
+    }
+    const elegíveis = clientesUnicos.filter((c) => (contagemEnvios[c.telefone] ?? 0) < maxRep)
 
     let enviados = 0
     let erros = 0
 
-    for (const cliente of clientesUnicos) {
-      if (jaEnviados.has(cliente.telefone)) continue
+    for (const cliente of elegíveis) {
 
       // Substitui variáveis na mensagem
       const texto = regra.mensagem
@@ -91,6 +109,12 @@ export async function POST() {
         })
 
         if (resp.ok) {
+          await supabase.from('mensagens_whatsapp').insert({
+            numero_cliente: `${cliente.telefone}@s.whatsapp.net`,
+            mensagem: texto,
+            status: 'Processando',
+            quem_mandou: 'Agente',
+          })
           // Registra no log para evitar reenvio
           await supabase.from('remarketing_logs').insert({
             regra_id: regra.id,

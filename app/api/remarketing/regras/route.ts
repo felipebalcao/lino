@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const supabase = getSupabase()
   const body = await request.json()
-  const { status_alvo, tempo_horas, mensagem, limite, intervalo_segundos } = body
+  const { status_alvo, tempo_horas, mensagem, limite, intervalo_segundos, hora_inicio, hora_fim, max_repeticoes } = body
 
   if (!status_alvo || !tempo_horas || !mensagem || !limite) {
     return NextResponse.json({ error: 'status_alvo, tempo_horas, limite e mensagem são obrigatórios' }, { status: 400 })
@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
       ativo: true,
       limite: Number(limite),
       intervalo_segundos: intervalo_segundos ? Number(intervalo_segundos) : 3,
+      hora_inicio: hora_inicio || null,
+      hora_fim: hora_fim || null,
+      max_repeticoes: max_repeticoes ? Number(max_repeticoes) : 1,
     })
     .select()
     .single()

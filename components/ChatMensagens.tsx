@@ -15,15 +15,18 @@ interface Props {
   onMensagemEnviada?: (msg: MensagemWhatsapp) => void
 }
 
-function isJsonMessage(mensagem: string): boolean {
-  const trimmed = mensagem.trim()
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return false
-  try {
-    JSON.parse(trimmed)
-    return true
-  } catch {
-    return false
+function extrairTexto(mensagem: string): string | null {
+  if (!mensagem) return null
+  const texto = mensagem.trim()
+  if (texto.startsWith('{')) {
+    try {
+      const obj = JSON.parse(texto)
+      return obj?.text?.trim() || obj?.caption?.trim() || null
+    } catch {
+      return null
+    }
   }
+  return texto || null
 }
 
 function formatarDataHora(dateStr: string) {
@@ -195,7 +198,10 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
         )}
 
         {!loading && (() => {
-          const visiveis = mensagens.filter((msg) => !isJsonMessage(msg.mensagem))
+          const visiveis = mensagens
+            .map((msg) => ({ msg, texto: extrairTexto(msg.mensagem) }))
+            .filter(({ texto }) => texto !== null)
+
           if (mensagens.length === 0 || visiveis.length === 0) {
             return (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 py-16">
@@ -204,7 +210,7 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
               </div>
             )
           }
-          return visiveis.map((msg) => {
+          return visiveis.map(({ msg, texto }) => {
             const quem = msg.quem_mandou?.toLowerCase()
             const isCliente = quem === 'cliente'
             const isManual = quem === 'manual'
@@ -232,7 +238,7 @@ export default function ChatMensagens({ cliente, mensagens, loading, onMensagemE
                         : 'bg-green-500 text-white rounded-tr-sm'
                     }`}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.mensagem}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{texto}</p>
                     <div className={`flex items-center gap-1 mt-1 ${isCliente ? 'justify-start' : 'justify-end'}`}>
                       <span className={`text-[10px] ${erro ? 'text-red-400' : isCliente ? 'text-gray-400' : isManual ? 'text-blue-100' : 'text-green-100'}`}>
                         {formatarDataHora(msg.data_criacao)}

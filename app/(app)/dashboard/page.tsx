@@ -201,8 +201,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Pizza Status Atual + Pizza Kanban */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pizza Status Atual + Pizza Kanban + Taxa de resposta */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {statusAtual.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Clientes por status atual</h2>
@@ -249,7 +249,10 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Taxa de resposta geral */}
+          </div>
+
+          {/* Taxa de resposta + barras */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {(() => {
               const totalResp = atendimento.reduce((s, d) => s + d.comResposta, 0)
               const totalGeral = atendimento.reduce((s, d) => s + d.comResposta + d.semResposta, 0)
@@ -294,6 +297,7 @@ export default function DashboardPage() {
             })()}
           </div>
 
+          {/* Barras */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Clientes por dia — barras verticais */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">

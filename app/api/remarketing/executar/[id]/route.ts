@@ -107,10 +107,12 @@ async function executarRegra(id: string) {
     const cliente = clientesUnicos[i]
     // Seleciona mensagem aleatória se houver múltiplas variações
     let mensagemBase = regra.mensagem
+    let variacaoIdx = 0
     try {
       const arr = JSON.parse(regra.mensagem)
       if (Array.isArray(arr) && arr.length > 0) {
-        mensagemBase = arr[Math.floor(Math.random() * arr.length)]
+        variacaoIdx = Math.floor(Math.random() * arr.length)
+        mensagemBase = arr[variacaoIdx]
       }
     } catch { /* string simples, usa como está */ }
 
@@ -127,7 +129,7 @@ async function executarRegra(id: string) {
       })
 
       if (resp.ok) {
-        await supabase.from('remarketing_logs').insert({ regra_id: regra.id, telefone: cliente.telefone })
+        await supabase.from('remarketing_logs').insert({ regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx })
         enviados++
       } else {
         erros++

@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   // Busca logs da regra
   const { data: logs, error } = await supabase
     .from('remarketing_logs')
-    .select('telefone, enviado_em')
+    .select('telefone, enviado_em, variacao')
     .eq('regra_id', id)
     .order('enviado_em', { ascending: false })
     .limit(100)
@@ -40,6 +40,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     telefone: l.telefone,
     nome: nomesPorTelefone[l.telefone] || null,
     enviado_em: l.enviado_em,
+    variacao: l.variacao ?? null,
   }))
 
   return NextResponse.json(resultado)

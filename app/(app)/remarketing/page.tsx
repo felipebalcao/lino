@@ -38,7 +38,7 @@ function formatarWhatsApp(texto: string): string {
 }
 
 export default function RemarketingPage() {
-  interface LogEntry { telefone: string; nome: string | null; enviado_em: string }
+  interface LogEntry { telefone: string; nome: string | null; enviado_em: string; variacao: number | null }
 
   const [regras, setRegras] = useState<Regra[]>([])
   const [loading, setLoading] = useState(true)
@@ -575,6 +575,7 @@ export default function RemarketingPage() {
                             <tr>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Nome</th>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Telefone</th>
+                              <th className="text-left px-4 py-2 font-medium text-gray-500">Variação</th>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Enviado em</th>
                             </tr>
                           </thead>
@@ -583,6 +584,9 @@ export default function RemarketingPage() {
                               <tr key={i} className="hover:bg-gray-50">
                                 <td className="px-4 py-2 text-gray-700">{log.nome || '—'}</td>
                                 <td className="px-4 py-2 text-gray-500">{log.telefone}</td>
+                                <td className="px-4 py-2 text-gray-400">
+                                  {log.variacao != null ? `#${log.variacao + 1}` : '—'}
+                                </td>
                                 <td className="px-4 py-2 text-gray-400">
                                   {new Date(log.enviado_em).toLocaleString('pt-BR', {
                                     day: '2-digit', month: '2-digit', year: '2-digit',

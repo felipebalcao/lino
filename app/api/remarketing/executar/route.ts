@@ -94,10 +94,12 @@ export async function POST() {
 
       // Seleciona mensagem aleatória se houver múltiplas variações
       let mensagemBase = regra.mensagem
+      let variacaoIdx = 0
       try {
         const arr = JSON.parse(regra.mensagem)
         if (Array.isArray(arr) && arr.length > 0) {
-          mensagemBase = arr[Math.floor(Math.random() * arr.length)]
+          variacaoIdx = Math.floor(Math.random() * arr.length)
+          mensagemBase = arr[variacaoIdx]
         }
       } catch { /* string simples, usa como está */ }
 
@@ -127,6 +129,7 @@ export async function POST() {
           await supabase.from('remarketing_logs').insert({
             regra_id: regra.id,
             telefone: cliente.telefone,
+            variacao: variacaoIdx,
           })
           enviados++
         } else {

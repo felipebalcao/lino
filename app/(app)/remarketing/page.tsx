@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play, ChevronDown, ChevronUp, Pencil, X } from 'lucide-react'
 
 interface Regra {
   id: string
@@ -50,6 +50,8 @@ export default function RemarketingPage() {
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({})
   const [loadingLogs, setLoadingLogs] = useState<Record<string, boolean>>({})
   const [pendentes, setPendentes] = useState<Record<string, number | null>>({})
+  const [editando, setEditando] = useState<Regra | null>(null)
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
 
   // Form nova regra
   const [statusAlvo, setStatusAlvo] = useState(STATUS_OPCOES[0])
@@ -129,6 +131,36 @@ export default function RemarketingPage() {
       mostrarFeedback('erro', 'Erro ao criar regra.')
     } finally {
       setSalvando(false)
+    }
+  }
+
+  async function salvarEdicao() {
+    if (!editando || !editando.mensagem.trim() || !editando.limite) return
+    setSalvandoEdicao(true)
+    try {
+      const res = await fetch(`/api/remarketing/regras/${editando.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status_alvo: editando.status_alvo,
+          tempo_horas: editando.tempo_horas,
+          mensagem: editando.mensagem,
+          limite: editando.limite,
+          intervalo_segundos: editando.intervalo_segundos,
+          hora_inicio: editando.hora_inicio,
+          hora_fim: editando.hora_fim,
+          max_repeticoes: editando.max_repeticoes,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const atualizada = await res.json()
+      setRegras((prev) => prev.map((r) => r.id === atualizada.id ? atualizada : r))
+      setEditando(null)
+      mostrarFeedback('ok', 'Regra atualizada!')
+    } catch {
+      mostrarFeedback('erro', 'Erro ao salvar edição.')
+    } finally {
+      setSalvandoEdicao(false)
     }
   }
 
@@ -484,6 +516,13 @@ export default function RemarketingPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
                   <button
+                    onClick={() => setEditando({ ...regra })}
+                    title="Editar"
+                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
                     onClick={async () => {
                       const res = await fetch(`/api/remarketing/executar/${regra.id}`, { method: 'POST' })
                       const data = await res.json()
@@ -523,6 +562,152 @@ export default function RemarketingPage() {
       <p className="text-xs text-gray-400 mt-6">
         O número de repetições define quantas vezes cada cliente pode receber a mensagem de uma mesma regra. Configure o webhook no n8n com um Schedule a cada 10 minutos.
       </p>
+
+      {/* Modal de edição */}
+      {editando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900">Editar regra</h2>
+              <button onClick={() => setEditando(null)} className="text-gray-400 hover:text-gray-700">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Linha 1 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Status alvo</label>
+                  <select
+                    value={editando.status_alvo}
+                    onChange={(e) => setEditando({ ...editando, status_alvo: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    {STATUS_OPCOES.map((s) => (
+                      <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tempo parado (h)</label>
+                  <input
+                    type="number" min={1}
+                    value={editando.tempo_horas}
+                    onChange={(e) => setEditando({ ...editando, tempo_horas: Number(e.target.value) })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Limite</label>
+                  <input
+                    type="number" min={1}
+                    value={editando.limite ?? ''}
+                    onChange={(e) => setEditando({ ...editando, limite: e.target.value === '' ? null : Number(e.target.value) })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Intervalo (seg)</label>
+                  <input
+                    type="number" min={1}
+                    value={editando.intervalo_segundos ?? 3}
+                    onChange={(e) => setEditando({ ...editando, intervalo_segundos: Number(e.target.value) })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+
+              {/* Linha 2 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Horário início</label>
+                  <input
+                    type="time"
+                    value={editando.hora_inicio ?? ''}
+                    onChange={(e) => setEditando({ ...editando, hora_inicio: e.target.value || null })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Horário fim</label>
+                  <input
+                    type="time"
+                    value={editando.hora_fim ?? ''}
+                    onChange={(e) => setEditando({ ...editando, hora_fim: e.target.value || null })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Repetições por cliente</label>
+                  <input
+                    type="number" min={1}
+                    value={editando.max_repeticoes ?? 1}
+                    onChange={(e) => setEditando({ ...editando, max_repeticoes: Number(e.target.value) })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+
+              {/* Mensagem */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Mensagem — use{' '}
+                  <code className="bg-gray-100 px-1 rounded text-xs">{'{{nome_cliente}}'}</code> e{' '}
+                  <code className="bg-gray-100 px-1 rounded text-xs">{'{{cidade}}'}</code>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <textarea
+                    value={editando.mensagem}
+                    onChange={(e) => setEditando({ ...editando, mensagem: e.target.value })}
+                    rows={6}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none font-mono"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-gray-400 mb-1">Preview</p>
+                    <div className="bg-[#ECE5DD] rounded-lg p-3 min-h-[120px]">
+                      {editando.mensagem ? (
+                        <div className="bg-white rounded-lg rounded-tr-none shadow-sm px-3 py-2 max-w-[90%] ml-auto">
+                          <p
+                            className="text-sm text-gray-800 leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: formatarWhatsApp(
+                                editando.mensagem
+                                  .replace(/\{\{nome_cliente\}\}/gi, 'João')
+                                  .replace(/\{\{nome\}\}/gi, 'João')
+                                  .replace(/\{\{cidade\}\}/gi, 'São Paulo')
+                              ),
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-center text-gray-400 text-xs pt-4">Preview da mensagem</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 px-6 pb-6">
+              <button
+                onClick={() => setEditando(null)}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                disabled={salvandoEdicao || !editando.mensagem.trim() || !editando.limite}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {salvandoEdicao ? <Loader2 size={14} className="animate-spin" /> : null}
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

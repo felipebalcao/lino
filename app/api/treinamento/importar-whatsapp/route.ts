@@ -28,35 +28,35 @@ export async function GET() {
     porCliente[m.numero_cliente].push(m)
   }
 
-  const pares: { pergunta: string; resposta: string }[] = []
+  const pares: { pergunta: string; resposta: string; prioridade: number }[] = []
 
   for (const conversa of Object.values(porCliente)) {
     for (let i = 0; i < conversa.length - 1; i++) {
       const atual = conversa[i]
       const proxima = conversa[i + 1]
 
-      // Par válido: remetentes diferentes (independente do valor exato de quem_mandou)
-      const remetentesDiferentes = atual.quem_mandou !== proxima.quem_mandou
+      const ehCliente = (v: string) => v === 'cliente'
+      const ehResposta = (v: string) => v === 'agente' || v === 'manual'
 
-      if (remetentesDiferentes) {
-        // A pergunta é sempre a mensagem do cliente (não-agente)
-        const agentValues = ['agente', 'Agente', 'bot', 'sistema', 'eu']
-        const atualEhAgente = agentValues.includes(atual.quem_mandou)
+      // Par: cliente pergunta → agente ou manual responde
+      if (ehCliente(atual.quem_mandou) && ehResposta(proxima.quem_mandou)) {
+        const pergunta = atual.mensagem?.trim()
+        const resposta = proxima.mensagem?.trim()
 
-        const pergunta = (atualEhAgente ? proxima.mensagem : atual.mensagem)?.trim()
-        const resposta = (atualEhAgente ? atual.mensagem : proxima.mensagem)?.trim()
-
-        // Filtra mensagens muito curtas ou automáticas
         if (
           pergunta && resposta &&
           pergunta.length > 5 && resposta.length > 5 &&
           !pergunta.startsWith('http') && !resposta.startsWith('http')
         ) {
-          pares.push({ pergunta, resposta })
+          // Respostas manuais têm prioridade maior (atendente humano)
+          pares.push({ pergunta, resposta, prioridade: proxima.quem_mandou === 'manual' ? 2 : 1 })
         }
       }
     }
   }
+
+  // Ordena: manual primeiro, depois agente
+  pares.sort((a, b) => b.prioridade - a.prioridade)
 
   // Remove duplicatas por pergunta similar (exact match)
   const vistos = new Set<string>()
@@ -67,7 +67,9 @@ export async function GET() {
     return true
   })
 
-  return NextResponse.json(paresFiltrados.slice(0, 100))
+  return NextResponse.json(
+    paresFiltrados.slice(0, 100).map(({ pergunta, resposta }) => ({ pergunta, resposta }))
+  )
 }
 
 // POST — importa pares selecionados para treinamento_qa

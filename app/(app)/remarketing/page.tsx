@@ -61,7 +61,10 @@ export default function RemarketingPage() {
   const [horaInicio, setHoraInicio] = useState('')
   const [horaFim, setHoraFim] = useState('')
   const [maxRepeticoes, setMaxRepeticoes] = useState<number>(1)
-  const [mensagem, setMensagem] = useState('')
+  const [mensagens, setMensagens] = useState<string[]>([''])
+  const [previewIdx, setPreviewIdx] = useState(0)
+  const [editandoMensagens, setEditandoMensagens] = useState<string[]>([''])
+  const [editandoPreviewIdx, setEditandoPreviewIdx] = useState(0)
 
   useEffect(() => {
     carregarRegras()
@@ -79,6 +82,18 @@ export default function RemarketingPage() {
     for (const r of resultados) mapa[r.id] = r.pendentes
     setPendentes(mapa)
   }
+
+  // Sincroniza editandoMensagens quando abre o modal de edição
+  useEffect(() => {
+    if (!editando) return
+    try {
+      const arr = JSON.parse(editando.mensagem)
+      setEditandoMensagens(Array.isArray(arr) && arr.length > 0 ? arr : [editando.mensagem])
+    } catch {
+      setEditandoMensagens([editando.mensagem])
+    }
+    setEditandoPreviewIdx(0)
+  }, [editando?.id])
 
   async function toggleLogs(regraId: string) {
     const aberto = logsAbertos[regraId]
@@ -108,18 +123,29 @@ export default function RemarketingPage() {
   }
 
   async function criarRegra() {
-    if (!mensagem.trim()) return
+    const mensagensValidas = mensagens.filter((m) => m.trim())
+    if (mensagensValidas.length === 0) return
     setSalvando(true)
     try {
       const res = await fetch('/api/remarketing/regras', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status_alvo: statusAlvo, tempo_horas: tempoHoras, mensagem, limite, intervalo_segundos: intervaloSegundos, hora_inicio: horaInicio || null, hora_fim: horaFim || null, max_repeticoes: maxRepeticoes }),
+        body: JSON.stringify({
+          status_alvo: statusAlvo,
+          tempo_horas: tempoHoras,
+          mensagem: JSON.stringify(mensagensValidas),
+          limite,
+          intervalo_segundos: intervaloSegundos,
+          hora_inicio: horaInicio || null,
+          hora_fim: horaFim || null,
+          max_repeticoes: maxRepeticoes,
+        }),
       })
       if (!res.ok) throw new Error('Erro ao criar')
       await carregarRegras()
       setMostrarForm(false)
-      setMensagem('')
+      setMensagens([''])
+      setPreviewIdx(0)
       setTempoHoras(24)
       setLimite(10)
       setIntervaloSegundos(3)
@@ -135,7 +161,8 @@ export default function RemarketingPage() {
   }
 
   async function salvarEdicao() {
-    if (!editando || !editando.mensagem.trim() || !editando.limite) return
+    const mensagensValidas = editandoMensagens.filter((m) => m.trim())
+    if (!editando || mensagensValidas.length === 0 || !editando.limite) return
     setSalvandoEdicao(true)
     try {
       const res = await fetch(`/api/remarketing/regras/${editando.id}`, {
@@ -144,7 +171,7 @@ export default function RemarketingPage() {
         body: JSON.stringify({
           status_alvo: editando.status_alvo,
           tempo_horas: editando.tempo_horas,
-          mensagem: editando.mensagem,
+          mensagem: JSON.stringify(mensagensValidas),
           limite: editando.limite,
           intervalo_segundos: editando.intervalo_segundos,
           hora_inicio: editando.hora_inicio,
@@ -329,30 +356,73 @@ export default function RemarketingPage() {
           </div>
 
           <div className="mb-2">
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Mensagem — use{' '}
-              <code className="bg-gray-100 px-1 rounded text-xs">{'{{nome_cliente}}'}</code> e{' '}
-              <code className="bg-gray-100 px-1 rounded text-xs">{'{{cidade}}'}</code>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-gray-600">
+                Mensagens — use{' '}
+                <code className="bg-gray-100 px-1 rounded text-xs">{'{{nome_cliente}}'}</code> e{' '}
+                <code className="bg-gray-100 px-1 rounded text-xs">{'{{cidade}}'}</code>
+              </label>
+              <button
+                type="button"
+                onClick={() => { setMensagens((p) => [...p, '']); setPreviewIdx(mensagens.length) }}
+                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium"
+              >
+                <Plus size={13} /> Adicionar variação
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <textarea
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-                placeholder="Olá {{nome_cliente}}, tudo bem? Vimos que você ainda não finalizou seu pedido..."
-                rows={6}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none font-mono"
-              />
-              {/* Preview */}
+              <div className="space-y-2">
+                {mensagens.map((msg, idx) => (
+                  <div key={idx} className="relative">
+                    {mensagens.length > 1 && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-medium text-gray-400">Variação {idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const novo = mensagens.filter((_, i) => i !== idx)
+                            setMensagens(novo)
+                            setPreviewIdx(Math.min(previewIdx, novo.length - 1))
+                          }}
+                          className="text-gray-300 hover:text-red-400 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <textarea
+                      value={msg}
+                      onChange={(e) => {
+                        const novo = [...mensagens]
+                        novo[idx] = e.target.value
+                        setMensagens(novo)
+                        setPreviewIdx(idx)
+                      }}
+                      onFocus={() => setPreviewIdx(idx)}
+                      placeholder="Olá {{nome_cliente}}, tudo bem?..."
+                      rows={4}
+                      className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none font-mono ${
+                        previewIdx === idx ? 'border-green-400' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                ))}
+              </div>
               <div>
-                <p className="text-xs font-medium text-gray-400 mb-1">Preview</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-medium text-gray-400">Preview</p>
+                  {mensagens.length > 1 && (
+                    <span className="text-[10px] text-gray-400">— variação {previewIdx + 1}</span>
+                  )}
+                </div>
                 <div className="bg-[#ECE5DD] rounded-lg p-3 min-h-[120px]">
-                  {mensagem ? (
+                  {mensagens[previewIdx]?.trim() ? (
                     <div className="bg-white rounded-lg rounded-tr-none shadow-sm px-3 py-2 max-w-[90%] ml-auto">
                       <p
                         className="text-sm text-gray-800 leading-relaxed"
                         dangerouslySetInnerHTML={{
                           __html: formatarWhatsApp(
-                            mensagem
+                            mensagens[previewIdx]
                               .replace(/\{\{nome_cliente\}\}/gi, 'João')
                               .replace(/\{\{nome\}\}/gi, 'João')
                               .replace(/\{\{cidade\}\}/gi, 'São Paulo')
@@ -370,14 +440,14 @@ export default function RemarketingPage() {
 
           <div className="flex justify-end gap-3 mt-5">
             <button
-              onClick={() => { setMostrarForm(false); setMensagem('') }}
+              onClick={() => { setMostrarForm(false); setMensagens(['']); setPreviewIdx(0) }}
               className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button
               onClick={criarRegra}
-              disabled={salvando || !mensagem.trim() || !limite}
+              disabled={salvando || !mensagens.some((m) => m.trim()) || !limite}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               {salvando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
@@ -448,7 +518,20 @@ export default function RemarketingPage() {
                       <span className="text-xs text-gray-400 italic">inativa</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3 mb-3">{regra.mensagem}</p>
+                  {(() => {
+                    let msgs: string[] = []
+                    try { msgs = JSON.parse(regra.mensagem); if (!Array.isArray(msgs)) msgs = [regra.mensagem] } catch { msgs = [regra.mensagem] }
+                    return (
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-2">{msgs[0]}</p>
+                        {msgs.length > 1 && (
+                          <span className="text-xs text-purple-600 font-medium mt-1 inline-block">
+                            +{msgs.length - 1} variação{msgs.length > 2 ? 'ões' : ''} — enviará aleatoriamente
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {/* Webhook URL */}
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
@@ -649,30 +732,74 @@ export default function RemarketingPage() {
                 </div>
               </div>
 
-              {/* Mensagem */}
+              {/* Mensagens */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Mensagem — use{' '}
-                  <code className="bg-gray-100 px-1 rounded text-xs">{'{{nome_cliente}}'}</code> e{' '}
-                  <code className="bg-gray-100 px-1 rounded text-xs">{'{{cidade}}'}</code>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-gray-600">
+                    Mensagens — use{' '}
+                    <code className="bg-gray-100 px-1 rounded text-xs">{'{{nome_cliente}}'}</code> e{' '}
+                    <code className="bg-gray-100 px-1 rounded text-xs">{'{{cidade}}'}</code>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { setEditandoMensagens((p) => [...p, '']); setEditandoPreviewIdx(editandoMensagens.length) }}
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium"
+                  >
+                    <Plus size={13} /> Adicionar variação
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <textarea
-                    value={editando.mensagem}
-                    onChange={(e) => setEditando({ ...editando, mensagem: e.target.value })}
-                    rows={6}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none font-mono"
-                  />
+                  <div className="space-y-2">
+                    {editandoMensagens.map((msg, idx) => (
+                      <div key={idx}>
+                        {editandoMensagens.length > 1 && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-medium text-gray-400">Variação {idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const novo = editandoMensagens.filter((_, i) => i !== idx)
+                                setEditandoMensagens(novo)
+                                setEditandoPreviewIdx(Math.min(editandoPreviewIdx, novo.length - 1))
+                              }}
+                              className="text-gray-300 hover:text-red-400 transition-colors"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
+                        <textarea
+                          value={msg}
+                          onChange={(e) => {
+                            const novo = [...editandoMensagens]
+                            novo[idx] = e.target.value
+                            setEditandoMensagens(novo)
+                            setEditandoPreviewIdx(idx)
+                          }}
+                          onFocus={() => setEditandoPreviewIdx(idx)}
+                          rows={4}
+                          className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none font-mono ${
+                            editandoPreviewIdx === idx ? 'border-green-400' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                    ))}
+                  </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-400 mb-1">Preview</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-medium text-gray-400">Preview</p>
+                      {editandoMensagens.length > 1 && (
+                        <span className="text-[10px] text-gray-400">— variação {editandoPreviewIdx + 1}</span>
+                      )}
+                    </div>
                     <div className="bg-[#ECE5DD] rounded-lg p-3 min-h-[120px]">
-                      {editando.mensagem ? (
+                      {editandoMensagens[editandoPreviewIdx]?.trim() ? (
                         <div className="bg-white rounded-lg rounded-tr-none shadow-sm px-3 py-2 max-w-[90%] ml-auto">
                           <p
                             className="text-sm text-gray-800 leading-relaxed"
                             dangerouslySetInnerHTML={{
                               __html: formatarWhatsApp(
-                                editando.mensagem
+                                editandoMensagens[editandoPreviewIdx]
                                   .replace(/\{\{nome_cliente\}\}/gi, 'João')
                                   .replace(/\{\{nome\}\}/gi, 'João')
                                   .replace(/\{\{cidade\}\}/gi, 'São Paulo')

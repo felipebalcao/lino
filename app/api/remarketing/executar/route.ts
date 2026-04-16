@@ -92,8 +92,16 @@ export async function POST() {
 
     for (const cliente of elegíveis) {
 
-      // Substitui variáveis na mensagem
-      const texto = regra.mensagem
+      // Seleciona mensagem aleatória se houver múltiplas variações
+      let mensagemBase = regra.mensagem
+      try {
+        const arr = JSON.parse(regra.mensagem)
+        if (Array.isArray(arr) && arr.length > 0) {
+          mensagemBase = arr[Math.floor(Math.random() * arr.length)]
+        }
+      } catch { /* string simples, usa como está */ }
+
+      const texto = mensagemBase
         .replace(/\{\{nome_cliente\}\}/gi, cliente.nome || 'Cliente')
         .replace(/\{\{nome\}\}/gi, cliente.nome || 'Cliente')
         .replace(/\{\{cidade\}\}/gi, cliente.cidade || '')

@@ -514,10 +514,10 @@ export default function TreinamentoPage() {
 
                     <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                       {paresWpp.map((par, i) => (
-                        <label
+                        <div
                           key={i}
-                          className={`flex items-start gap-3 bg-gray-50 rounded-xl p-4 border cursor-pointer transition-colors ${
-                            selecionados.has(i) ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:border-gray-200'
+                          className={`flex items-start gap-3 bg-gray-50 rounded-xl p-4 border transition-colors ${
+                            selecionados.has(i) ? 'border-purple-300 bg-purple-50' : 'border-gray-100'
                           }`}
                         >
                           <input
@@ -529,13 +529,32 @@ export default function TreinamentoPage() {
                               else novo.add(i)
                               setSelecionados(novo)
                             }}
-                            className="mt-0.5 accent-purple-600"
+                            className="mt-0.5 accent-purple-600 cursor-pointer"
                           />
                           <div className="flex-1 min-w-0 space-y-1">
                             <p className="text-sm font-medium text-gray-800 leading-snug">{par.pergunta}</p>
                             <p className="text-sm text-gray-500 leading-snug">{par.resposta}</p>
                           </div>
-                        </label>
+                          <button
+                            onClick={() => {
+                              const novos = paresWpp.filter((_, j) => j !== i)
+                              setParesWpp(novos)
+                              const novo = new Set(selecionados)
+                              novo.delete(i)
+                              // Reindexar selecionados após remoção
+                              const reindexado = new Set<number>()
+                              for (const idx of novo) {
+                                if (idx < i) reindexado.add(idx)
+                                else if (idx > i) reindexado.add(idx - 1)
+                              }
+                              setSelecionados(reindexado)
+                            }}
+                            title="Remover da lista"
+                            className="shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </>

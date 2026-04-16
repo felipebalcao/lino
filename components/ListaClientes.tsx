@@ -29,29 +29,6 @@ function formatarData(dateStr: string | null | undefined) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
-function extrairPreview(mensagem: string | null | undefined): string {
-  if (!mensagem) return ''
-  const texto = mensagem.trim()
-  if (texto.startsWith('{')) {
-    try {
-      const obj = JSON.parse(texto)
-      return obj?.text?.trim() || obj?.caption?.trim() || ''
-    } catch {
-      return ''
-    }
-  }
-  return texto
-}
-
-function formatarDataCompleta(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 export default function ListaClientes({ clientes, clienteSelecionadoId, onSelecionar }: Props) {
   if (clientes.length === 0) {
@@ -67,12 +44,8 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
     <ul className="divide-y divide-gray-100">
       {clientes.map((cliente) => {
         const ativo = cliente.id === clienteSelecionadoId
-        // data da lista: usa dt_ultima_mensagem do cliente (sempre atualizado pelo banco)
-        // preview de texto: usa ultima_mensagem se chegou via realtime
         const dataLista = cliente.dt_ultima_mensagem || cliente.created_at
-        const preview = cliente.ultima_mensagem
-          ? extrairPreview(cliente.ultima_mensagem.mensagem)
-          : cliente.cidade || cliente.telefone
+        const telefoneExibido = cliente.telefone?.split('@')[0] ?? ''
 
         return (
           <li key={cliente.id}>
@@ -89,7 +62,7 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
                   <span className="font-medium text-gray-900 text-sm truncate">{cliente.nome}</span>
                   <span className="text-xs text-gray-400 shrink-0">{formatarData(dataLista)}</span>
                 </div>
-                <p className="text-xs text-gray-500 truncate mt-0.5">{preview}</p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">{telefoneExibido}</p>
               </div>
             </button>
           </li>

@@ -9,6 +9,7 @@ export interface Cliente {
   origem_app?: string | null
   origem_url?: string | null
   status_atual?: string | null
+  dt_ultima_mensagem?: string | null
 }
 
 export interface MensagemWhatsapp {

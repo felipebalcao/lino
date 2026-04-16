@@ -67,7 +67,12 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
     <ul className="divide-y divide-gray-100">
       {clientes.map((cliente) => {
         const ativo = cliente.id === clienteSelecionadoId
-        const temMensagem = !!cliente.ultima_mensagem
+        // data da lista: usa dt_ultima_mensagem do cliente (sempre atualizado pelo banco)
+        // preview de texto: usa ultima_mensagem se chegou via realtime
+        const dataLista = cliente.dt_ultima_mensagem || cliente.created_at
+        const preview = cliente.ultima_mensagem
+          ? extrairPreview(cliente.ultima_mensagem.mensagem)
+          : cliente.cidade || cliente.telefone
 
         return (
           <li key={cliente.id}>
@@ -82,22 +87,9 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-gray-900 text-sm truncate">{cliente.nome}</span>
-                  {temMensagem && (
-                    <span className="text-xs text-gray-400 shrink-0">
-                      {formatarData(cliente.ultima_mensagem!.data_criacao)}
-                    </span>
-                  )}
+                  <span className="text-xs text-gray-400 shrink-0">{formatarData(dataLista)}</span>
                 </div>
-                <p className="text-xs text-gray-500 truncate mt-0.5">
-                  {temMensagem
-                    ? extrairPreview(cliente.ultima_mensagem!.mensagem)
-                    : cliente.cidade || cliente.telefone}
-                </p>
-                {formatarDataCompleta(temMensagem ? cliente.ultima_mensagem!.data_criacao : cliente.created_at) && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {formatarDataCompleta(temMensagem ? cliente.ultima_mensagem!.data_criacao : cliente.created_at)}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 truncate mt-0.5">{preview}</p>
               </div>
             </button>
           </li>

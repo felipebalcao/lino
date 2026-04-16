@@ -85,6 +85,24 @@ export async function getAtendimentoVsResposta(startDate?: string, endDate?: str
     .map(([data, { semResposta, comResposta }]) => ({ data, semResposta, comResposta }))
 }
 
+export async function getContagemPorStatusAtual(): Promise<{ status: string; total: number }[]> {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('status_atual')
+
+  if (error) throw error
+
+  const contagem: Record<string, number> = {}
+  for (const c of data ?? []) {
+    const status = c.status_atual || 'sem status'
+    contagem[status] = (contagem[status] ?? 0) + 1
+  }
+
+  return Object.entries(contagem)
+    .map(([status, total]) => ({ status, total }))
+    .sort((a, b) => b.total - a.total)
+}
+
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
   const { data, error } = await supabase
     .from('clientes')

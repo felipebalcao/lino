@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getClientesPorDia, getAtendimentoVsResposta } from '@/services/clientesService'
+import { getClientesPorDia, getAtendimentoVsResposta, getContagemPorStatusAtual } from '@/services/clientesService'
 import { getContagemPorSecao } from '@/services/kanbanService'
 import { Users, TrendingUp, AlertCircle, Loader2, Calendar } from 'lucide-react'
 
@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const [clientesPorDia, setClientesPorDia] = useState<DadosDia[]>([])
   const [atendimento, setAtendimento] = useState<DadosAtendimento[]>([])
   const [kanban, setKanban] = useState<{ nome: string; total: number }[]>([])
+  const [statusAtual, setStatusAtual] = useState<{ status: string; total: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [startDate, setStartDate] = useState(haNDias(typeof window !== 'undefined' && window.innerWidth < 768 ? 15 : 20))
@@ -66,15 +67,17 @@ export default function DashboardPage() {
     setLoading(true)
     setErro(null)
     try {
-      const [porDia, atend, kanbanData] = await Promise.all([
+      const [porDia, atend, kanbanData, statusData] = await Promise.all([
         getClientesPorDia(startDate, endDate),
         getAtendimentoVsResposta(startDate, endDate),
         getContagemPorSecao(),
+        getContagemPorStatusAtual(),
       ])
       setClientesPorDia(porDia)
       setTotalClientes(porDia.reduce((s, d) => s + d.total, 0))
       setAtendimento(atend)
       setKanban(kanbanData)
+      setStatusAtual(statusData)
     } catch {
       setErro('Erro ao carregar dados. Verifique sua conexão com o Supabase.')
     } finally {
@@ -198,8 +201,31 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Pizza Kanban + Taxa de resposta */}
+          {/* Pizza Status Atual + Pizza Kanban */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {statusAtual.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h2 className="font-semibold text-gray-900 mb-4">Clientes por status atual</h2>
+                <div className="flex items-center gap-6">
+                  <svg width="160" height="160" viewBox="0 0 160 160" className="shrink-0">
+                    {pizzaSlices(statusAtual.map(s => ({ nome: s.status, total: s.total }))).map((s, i) => (
+                      <path key={i} d={s.path} fill={s.cor} stroke="white" strokeWidth="2" />
+                    ))}
+                  </svg>
+                  <div className="flex flex-col gap-2 overflow-hidden">
+                    {pizzaSlices(statusAtual.map(s => ({ nome: s.status, total: s.total }))).map((s, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: s.cor }} />
+                        <span className="text-xs text-gray-600 truncate flex-1">{s.nome.replace(/_/g, ' ')}</span>
+                        <span className="text-xs font-semibold text-gray-900 shrink-0">{s.total}</span>
+                        <span className="text-xs text-gray-400 w-7 text-right shrink-0">{s.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {kanban.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Clientes por etapa do Kanban</h2>

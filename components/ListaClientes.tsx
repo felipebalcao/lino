@@ -12,11 +12,14 @@ interface Props {
 
 function formatarHora(dateStr: string) {
   const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function formatarData(dateStr: string) {
+function formatarData(dateStr: string | null | undefined) {
+  if (!dateStr) return ''
   const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
   const hoje = new Date()
   const ontem = new Date()
   ontem.setDate(hoje.getDate() - 1)
@@ -24,6 +27,30 @@ function formatarData(dateStr: string) {
   if (d.toDateString() === hoje.toDateString()) return formatarHora(dateStr)
   if (d.toDateString() === ontem.toDateString()) return 'Ontem'
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+function extrairPreview(mensagem: string | null | undefined): string {
+  if (!mensagem) return ''
+  const texto = mensagem.trim()
+  if (texto.startsWith('{')) {
+    try {
+      const obj = JSON.parse(texto)
+      return obj?.text?.trim() || obj?.caption?.trim() || ''
+    } catch {
+      return ''
+    }
+  }
+  return texto
+}
+
+function formatarDataCompleta(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 export default function ListaClientes({ clientes, clienteSelecionadoId, onSelecionar }: Props) {
@@ -63,15 +90,14 @@ export default function ListaClientes({ clientes, clienteSelecionadoId, onSeleci
                 </div>
                 <p className="text-xs text-gray-500 truncate mt-0.5">
                   {temMensagem
-                    ? cliente.ultima_mensagem!.mensagem
+                    ? extrairPreview(cliente.ultima_mensagem!.mensagem)
                     : cliente.cidade || cliente.telefone}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  {new Date(temMensagem ? cliente.ultima_mensagem!.data_criacao : cliente.created_at).toLocaleString('pt-BR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit',
-                  })}
-                </p>
+                {formatarDataCompleta(temMensagem ? cliente.ultima_mensagem!.data_criacao : cliente.created_at) && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {formatarDataCompleta(temMensagem ? cliente.ultima_mensagem!.data_criacao : cliente.created_at)}
+                  </p>
+                )}
               </div>
             </button>
           </li>

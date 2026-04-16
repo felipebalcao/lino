@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import {
   BookOpen, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp,
-  FileText, MessageSquareQuote, AlignLeft, Upload, CheckCircle, AlertCircle, MessageCircle,
+  FileText, MessageSquareQuote, AlignLeft, Upload, CheckCircle, AlertCircle, MessageCircle, Wand2,
 } from 'lucide-react'
 import { TreinamentoQA, TreinamentoTexto, BaseConhecimento } from '@/types'
 
@@ -45,6 +45,9 @@ export default function TreinamentoPage() {
   const [paresWpp, setParesWpp] = useState<{ pergunta: string; resposta: string }[]>([])
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const [extraindo, setExtraindo] = useState(false)
+  const [refinando, setRefinando] = useState(false)
+  const [refinado, setRefinado] = useState(false)
+  const [tokensUsados, setTokensUsados] = useState<number | null>(null)
   const [importando, setImportando] = useState(false)
   const [erroWpp, setErroWpp] = useState<string | null>(null)
   const [importadoOk, setImportadoOk] = useState<number | null>(null)
@@ -193,6 +196,27 @@ export default function TreinamentoPage() {
       setErroWpp('Erro ao extrair conversas.')
     }
     setExtraindo(false)
+  }
+
+  async function refinarComIA() {
+    if (paresWpp.length === 0) return
+    setRefinando(true)
+    setErroWpp(null)
+    const res = await fetch('/api/treinamento/refinar-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pares: paresWpp }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setParesWpp(data.pares)
+      setSelecionados(new Set(data.pares.map((_: unknown, i: number) => i)))
+      setTokensUsados(data.tokens)
+      setRefinado(true)
+    } else {
+      setErroWpp(data.error ?? 'Erro ao refinar.')
+    }
+    setRefinando(false)
   }
 
   async function importarSelecionados() {
@@ -489,12 +513,32 @@ export default function TreinamentoPage() {
 
                 {paresWpp.length > 0 && (
                   <>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 font-medium">
-                        {paresWpp.length} par{paresWpp.length !== 1 ? 'es' : ''} encontrado{paresWpp.length !== 1 ? 's' : ''} —{' '}
-                        <span className="text-gray-400">{selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}</span>
-                      </p>
+                    <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
+                        <p className="text-sm text-gray-600 font-medium">
+                          {paresWpp.length} par{paresWpp.length !== 1 ? 'es' : ''}{' '}
+                          {refinado ? (
+                            <span className="inline-flex items-center gap-1 text-purple-600 font-semibold">
+                              <Wand2 size={12} /> refinados pela IA
+                            </span>
+                          ) : 'extraídos'} —{' '}
+                          <span className="text-gray-400">{selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}</span>
+                        </p>
+                        {tokensUsados && (
+                          <span className="text-xs text-gray-400">{tokensUsados.toLocaleString('pt-BR')} tokens</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!refinado && (
+                          <button
+                            onClick={refinarComIA}
+                            disabled={refinando}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            {refinando ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                            {refinando ? 'Refinando...' : 'Refinar com IA'}
+                          </button>
+                        )}
                         <button
                           onClick={() => setSelecionados(selecionados.size === paresWpp.length ? new Set() : new Set(paresWpp.map((_, i) => i)))}
                           className="text-xs text-purple-600 hover:underline"

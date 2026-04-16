@@ -201,8 +201,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Pizza Status Atual + Pizza Kanban + Taxa de resposta */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Pizza Status Atual + Pizza Kanban */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {statusAtual.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Clientes por status atual</h2>
@@ -296,6 +296,48 @@ export default function DashboardPage() {
               )
             })()}
           </div>
+
+          {/* Taxa de resposta — card horizontal full width */}
+          {(() => {
+            const totalResp = atendimento.reduce((s, d) => s + d.comResposta, 0)
+            const totalGeral = atendimento.reduce((s, d) => s + d.comResposta + d.semResposta, 0)
+            const taxa = totalGeral > 0 ? Math.round((totalResp / totalGeral) * 100) : 0
+            const r = 36
+            const circ = 2 * Math.PI * r
+            const dash = (taxa / 100) * circ
+            return (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex items-center gap-8">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">Taxa de resposta geral</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Período selecionado — ao menos 3 mensagens</p>
+                </div>
+                <div className="relative shrink-0">
+                  <svg width="88" height="88" viewBox="0 0 88 88">
+                    <circle cx="44" cy="44" r={r} fill="none" stroke="#f3f4f6" strokeWidth="10" />
+                    <circle cx="44" cy="44" r={r} fill="none"
+                      stroke={taxa >= 50 ? '#22c55e' : '#ef4444'}
+                      strokeWidth="10" strokeLinecap="round"
+                      strokeDasharray={`${dash} ${circ}`}
+                      transform="rotate(-90 44 44)"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-bold text-gray-900">{taxa}%</span>
+                  </div>
+                </div>
+                <div className="flex gap-8 text-sm text-gray-500">
+                  <span className="flex flex-col">
+                    <span className="font-bold text-green-600 text-xl">{totalResp}</span>
+                    Responderam
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="font-bold text-red-400 text-xl">{totalGeral - totalResp}</span>
+                    Sem resposta
+                  </span>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Barras */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

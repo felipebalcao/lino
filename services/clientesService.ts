@@ -94,8 +94,8 @@ export async function getContagemPorStatusAtual(): Promise<{ status: string; tot
 
   const contagem: Record<string, number> = {}
   for (const c of data ?? []) {
-    const status = c.status_atual || 'sem status'
-    contagem[status] = (contagem[status] ?? 0) + 1
+    if (!c.status_atual) continue  // ignora sem status
+    contagem[c.status_atual] = (contagem[c.status_atual] ?? 0) + 1
   }
 
   return Object.entries(contagem)

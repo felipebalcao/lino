@@ -3,11 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import {
   BookOpen, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp,
-  FileText, MessageSquareQuote, AlignLeft, Upload, CheckCircle, AlertCircle,
+  FileText, MessageSquareQuote, AlignLeft, Upload, CheckCircle, AlertCircle, MessageCircle,
 } from 'lucide-react'
 import { TreinamentoQA, TreinamentoTexto, BaseConhecimento } from '@/types'
 
-type Aba = 'prompt' | 'qa' | 'textos' | 'arquivos'
+type Aba = 'prompt' | 'qa' | 'textos' | 'arquivos' | 'whatsapp'
 
 export default function TreinamentoPage() {
   const [aba, setAba] = useState<Aba>('prompt')
@@ -40,6 +40,14 @@ export default function TreinamentoPage() {
   const [erroGerar, setErroGerar] = useState<string | null>(null)
   const [base, setBase] = useState<BaseConhecimento | null>(null)
   const [baseExpandida, setBaseExpandida] = useState(false)
+
+  // WhatsApp import
+  const [paresWpp, setParesWpp] = useState<{ pergunta: string; resposta: string }[]>([])
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
+  const [extraindo, setExtraindo] = useState(false)
+  const [importando, setImportando] = useState(false)
+  const [erroWpp, setErroWpp] = useState<string | null>(null)
+  const [importadoOk, setImportadoOk] = useState<number | null>(null)
 
   // Erro geral
   const [erro, setErro] = useState<string | null>(null)
@@ -170,11 +178,52 @@ export default function TreinamentoPage() {
     setGerando(false)
   }
 
+  // --- WhatsApp ---
+  async function extrairConversas() {
+    setExtraindo(true)
+    setErroWpp(null)
+    setImportadoOk(null)
+    setSelecionados(new Set())
+    const res = await fetch('/api/treinamento/importar-whatsapp')
+    if (res.ok) {
+      const data = await res.json()
+      setParesWpp(data)
+      setSelecionados(new Set(data.map((_: unknown, i: number) => i)))
+    } else {
+      setErroWpp('Erro ao extrair conversas.')
+    }
+    setExtraindo(false)
+  }
+
+  async function importarSelecionados() {
+    const pares = paresWpp.filter((_, i) => selecionados.has(i))
+    if (pares.length === 0) return
+    setImportando(true)
+    setErroWpp(null)
+    const res = await fetch('/api/treinamento/importar-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pares }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setImportadoOk(data.importados)
+      setParesWpp([])
+      setSelecionados(new Set())
+      const qaRes = await fetch('/api/treinamento/qa')
+      if (qaRes.ok) setQas(await qaRes.json())
+    } else {
+      setErroWpp(data.error ?? 'Erro ao importar.')
+    }
+    setImportando(false)
+  }
+
   const abas: { id: Aba; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'prompt', label: 'Prompt', icon: AlignLeft },
     { id: 'qa', label: 'Perguntas & Respostas', icon: MessageSquareQuote, count: qas.length },
     { id: 'textos', label: 'Textos', icon: FileText, count: textos.length },
     { id: 'arquivos', label: 'Arquivos', icon: Upload },
+    { id: 'whatsapp', label: 'Importar do WhatsApp', icon: MessageCircle },
   ]
 
   return (
@@ -401,6 +450,101 @@ export default function TreinamentoPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Aba: WhatsApp */}
+            {aba === 'whatsapp' && (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Extrai pares de pergunta e resposta das suas conversas reais do WhatsApp e importa direto para a base de Q&A.
+                    </p>
+                  </div>
+                  <button
+                    onClick={extrairConversas}
+                    disabled={extraindo}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {extraindo ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+                    {extraindo ? 'Extraindo...' : 'Extrair conversas'}
+                  </button>
+                </div>
+
+                {erroWpp && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                    <AlertCircle size={15} /> {erroWpp}
+                  </div>
+                )}
+
+                {importadoOk !== null && (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
+                    <CheckCircle size={15} />
+                    {importadoOk} par{importadoOk !== 1 ? 'es' : ''} importado{importadoOk !== 1 ? 's' : ''} com sucesso! Clique em &quot;Gerar agora&quot; para atualizar a base.
+                  </div>
+                )}
+
+                {paresWpp.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600 font-medium">
+                        {paresWpp.length} par{paresWpp.length !== 1 ? 'es' : ''} encontrado{paresWpp.length !== 1 ? 's' : ''} —{' '}
+                        <span className="text-gray-400">{selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}</span>
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setSelecionados(selecionados.size === paresWpp.length ? new Set() : new Set(paresWpp.map((_, i) => i)))}
+                          className="text-xs text-purple-600 hover:underline"
+                        >
+                          {selecionados.size === paresWpp.length ? 'Desmarcar todos' : 'Selecionar todos'}
+                        </button>
+                        <button
+                          onClick={importarSelecionados}
+                          disabled={importando || selecionados.size === 0}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          {importando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                          Importar selecionados
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                      {paresWpp.map((par, i) => (
+                        <label
+                          key={i}
+                          className={`flex items-start gap-3 bg-gray-50 rounded-xl p-4 border cursor-pointer transition-colors ${
+                            selecionados.has(i) ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:border-gray-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selecionados.has(i)}
+                            onChange={() => {
+                              const novo = new Set(selecionados)
+                              if (novo.has(i)) novo.delete(i)
+                              else novo.add(i)
+                              setSelecionados(novo)
+                            }}
+                            className="mt-0.5 accent-purple-600"
+                          />
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <p className="text-sm font-medium text-gray-800 leading-snug">{par.pergunta}</p>
+                            <p className="text-sm text-gray-500 leading-snug">{par.resposta}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {paresWpp.length === 0 && !extraindo && importadoOk === null && (
+                  <div className="text-center py-10 text-gray-400 text-sm">
+                    <MessageCircle size={32} className="mx-auto mb-3 text-gray-300" />
+                    Clique em &quot;Extrair conversas&quot; para buscar pares de perguntas e respostas das suas mensagens do WhatsApp.
                   </div>
                 )}
               </div>

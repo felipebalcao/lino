@@ -129,7 +129,12 @@ async function executarRegra(id: string) {
       })
 
       if (resp.ok) {
-        await supabase.from('remarketing_logs').insert({ regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx })
+        await Promise.all([
+          supabase.from('remarketing_logs').insert({ regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx }),
+          supabase.from('clientes')
+            .update({ status_atual: 'remarketing' })
+            .eq('id', cliente.id),
+        ])
         enviados++
       } else {
         erros++

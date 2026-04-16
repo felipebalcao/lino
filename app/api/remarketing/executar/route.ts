@@ -119,18 +119,22 @@ export async function POST() {
         })
 
         if (resp.ok) {
-          await supabase.from('mensagens_whatsapp').insert({
-            numero_cliente: `${cliente.telefone}@s.whatsapp.net`,
-            mensagem: texto,
-            status: 'Processando',
-            quem_mandou: 'Agente',
-          })
-          // Registra no log para evitar reenvio
-          await supabase.from('remarketing_logs').insert({
-            regra_id: regra.id,
-            telefone: cliente.telefone,
-            variacao: variacaoIdx,
-          })
+          await Promise.all([
+            supabase.from('mensagens_whatsapp').insert({
+              numero_cliente: `${cliente.telefone}@s.whatsapp.net`,
+              mensagem: texto,
+              status: 'Processando',
+              quem_mandou: 'Agente',
+            }),
+            supabase.from('remarketing_logs').insert({
+              regra_id: regra.id,
+              telefone: cliente.telefone,
+              variacao: variacaoIdx,
+            }),
+            supabase.from('clientes')
+              .update({ status_atual: 'remarketing' })
+              .eq('id', cliente.id),
+          ])
           enviados++
         } else {
           erros++

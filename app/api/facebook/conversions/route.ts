@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readConfig } from '@/lib/config-server'
 import { createHash } from 'crypto'
 
-const FB_API_VERSION = 'v19.0'
+const FB_API_VERSION = 'v21.0'
 
 const FB_EVENTOS = [
   'Lead',

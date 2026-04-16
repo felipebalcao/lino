@@ -39,7 +39,11 @@ const CORES_PRESET = [
   '#3b82f6', '#06b6d4', '#64748b', '#1e293b',
 ]
 
-async function enviarEventoFacebook(clientes: { id: number; nome: string; telefone: string }[], eventName: string, secaoNome: string) {
+async function enviarEventoFacebook(
+  clientes: { id: number; nome: string; telefone: string }[],
+  eventName: string,
+  secaoNome: string,
+): Promise<{ ok: boolean; erro?: string }> {
   try {
     const res = await fetch('/api/facebook/conversions', {
       method: 'POST',
@@ -47,6 +51,7 @@ async function enviarEventoFacebook(clientes: { id: number; nome: string; telefo
       body: JSON.stringify({ clientes, eventName }),
     })
     const result = await res.json()
+    const erroStr = result.ok === false ? JSON.stringify(result.error) : null
     await fetch('/api/facebook/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,10 +61,16 @@ async function enviarEventoFacebook(clientes: { id: number; nome: string; telefo
         secao: secaoNome,
         events_received: result.events_received ?? null,
         fbtrace_id: result.fbtrace_id ?? null,
-        erro: result.ok === false ? JSON.stringify(result.error) : null,
+        erro: erroStr,
       }),
     })
-  } catch { /* ignora */ }
+    if (!res.ok || result.ok === false) {
+      return { ok: false, erro: erroStr ?? `HTTP ${res.status}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : 'Erro desconhecido' }
+  }
 }
 
 export default function KanbanPage() {
@@ -76,6 +87,8 @@ export default function KanbanPage() {
   const [mostrarInput, setMostrarInput] = useState(false)
   const [dragClienteId, setDragClienteId] = useState<number | null>(null)
   const [dragSobreSecao, setDragSobreSecao] = useState<string | null>(null)
+  const [fbNotif, setFbNotif] = useState<{ ok: boolean; msg: string } | null>(null)
+  const fbNotifTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function carregar() {
@@ -179,7 +192,14 @@ export default function KanbanPage() {
         [{ id: clienteMovido.id, nome: clienteMovido.nome, telefone: clienteMovido.telefone }],
         secaoDestino.facebook_evento,
         secaoDestino.nome,
-      )
+      ).then((r) => {
+        if (fbNotifTimerRef.current) clearTimeout(fbNotifTimerRef.current)
+        setFbNotif(r.ok
+          ? { ok: true, msg: `Evento "${secaoDestino.facebook_evento}" enviado ao Facebook` }
+          : { ok: false, msg: `Erro Facebook: ${r.erro}` }
+        )
+        fbNotifTimerRef.current = setTimeout(() => setFbNotif(null), 5000)
+      })
     }
   }
 
@@ -198,6 +218,12 @@ export default function KanbanPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Notificação Facebook */}
+      {fbNotif && (
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 transition-all ${fbNotif.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {fbNotif.ok ? '✓' : '✗'} {fbNotif.msg}
+        </div>
+      )}
       {/* Header */}
       <div className="shrink-0 px-8 py-6 border-b border-gray-200 bg-white flex items-center justify-between">
         <div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readConfig } from '@/lib/config-server'
 
-const FB_API_VERSION = 'v19.0'
+const FB_API_VERSION = 'v21.0'
 
 const FIELDS = [
   'campaign_name',

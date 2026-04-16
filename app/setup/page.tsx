@@ -42,6 +42,8 @@ export default function SetupPage() {
   const [mostrarOpenai, setMostrarOpenai] = useState(false)
   const [mostrarFbToken, setMostrarFbToken] = useState(false)
   const [mostrarFbAdsToken, setMostrarFbAdsToken] = useState(false)
+  const [testandoFb, setTestandoFb] = useState(false)
+  const [fbTesteResult, setFbTesteResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   useEffect(() => {
     // Carregar config atual
@@ -98,6 +100,31 @@ export default function SetupPage() {
 
     setSucesso(true)
     setSalvando(false)
+  }
+
+  async function handleTestarFb() {
+    setTestandoFb(true)
+    setFbTesteResult(null)
+    try {
+      const res = await fetch('/api/facebook/conversions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientes: [{ nome: 'Teste Lino', telefone: '11999999999' }],
+          eventName: 'Lead',
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setFbTesteResult({ ok: true, msg: `Evento recebido pelo Facebook! (events_received: ${data.events_received})` })
+      } else {
+        setFbTesteResult({ ok: false, msg: `Erro: ${JSON.stringify(data.error ?? data)}` })
+      }
+    } catch (e) {
+      setFbTesteResult({ ok: false, msg: e instanceof Error ? e.message : 'Erro de rede' })
+    } finally {
+      setTestandoFb(false)
+    }
   }
 
   function handleIrParaApp() {
@@ -282,6 +309,22 @@ export default function SetupPage() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                 />
                 <p className="text-xs text-gray-400 mt-1">Use durante testes para visualizar eventos no painel do Facebook</p>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={handleTestarFb}
+                  disabled={testandoFb}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-50 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed text-blue-700 rounded-lg transition-colors border border-blue-200"
+                >
+                  {testandoFb ? <><Loader2 size={14} className="animate-spin" /> Testando...</> : 'Testar conexão com Facebook'}
+                </button>
+                {fbTesteResult && (
+                  <p className={`text-xs mt-2 font-medium ${fbTesteResult.ok ? 'text-green-600' : 'text-red-600'}`}>
+                    {fbTesteResult.ok ? '✓ ' : '✗ '}{fbTesteResult.msg}
+                  </p>
+                )}
               </div>
 
               <hr className="border-gray-100" />

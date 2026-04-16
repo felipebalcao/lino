@@ -11,6 +11,7 @@ export interface AppConfig {
   fbTestEventCode: string
   fbAdsToken: string
   fbAdAccountId: string
+  instanciasPermitidas: string
 }
 
 function getSupabaseForConfig() {
@@ -37,6 +38,7 @@ export async function readConfig(): Promise<AppConfig> {
   let fbTestEventCode = process.env.FB_TEST_EVENT_CODE || ''
   let fbAdsToken = process.env.FB_ADS_TOKEN || ''
   let fbAdAccountId = process.env.FB_AD_ACCOUNT_ID || ''
+  let instanciasPermitidas = '1'
 
   if (supabaseUrl && supabaseAnonKey) {
     try {
@@ -52,12 +54,13 @@ export async function readConfig(): Promise<AppConfig> {
           if (row.chave === 'fb_test_event_code' && row.valor) fbTestEventCode = row.valor
           if (row.chave === 'fb_ads_token' && row.valor) fbAdsToken = row.valor
           if (row.chave === 'fb_ad_account_id' && row.valor) fbAdAccountId = row.valor
+          if (row.chave === 'instancias_permitidas' && row.valor) instanciasPermitidas = row.valor
         }
       }
     } catch { /* ignora */ }
   }
 
-  return { supabaseUrl, supabaseAnonKey, uazapiUrl, uazapiToken, openaiKey, fbPixelId, fbAccessToken, fbTestEventCode, fbAdsToken, fbAdAccountId }
+  return { supabaseUrl, supabaseAnonKey, uazapiUrl, uazapiToken, openaiKey, fbPixelId, fbAccessToken, fbTestEventCode, fbAdsToken, fbAdAccountId, instanciasPermitidas }
 }
 
 export async function writeConfig(config: AppConfig): Promise<void> {
@@ -78,6 +81,7 @@ export async function writeConfig(config: AppConfig): Promise<void> {
     { chave: 'fb_test_event_code', valor: config.fbTestEventCode },
     { chave: 'fb_ads_token', valor: config.fbAdsToken },
     { chave: 'fb_ad_account_id', valor: config.fbAdAccountId },
+    { chave: 'instancias_permitidas', valor: config.instanciasPermitidas },
   ]
 
   for (const entry of entries) {

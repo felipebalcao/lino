@@ -17,6 +17,7 @@ interface ConfigForm {
   fbTestEventCode: string
   fbAdsToken: string
   fbAdAccountId: string
+  instanciasPermitidas: string
 }
 
 export default function SetupPage() {
@@ -32,6 +33,7 @@ export default function SetupPage() {
     fbTestEventCode: '',
     fbAdsToken: '',
     fbAdAccountId: '',
+    instanciasPermitidas: '1',
   })
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -62,6 +64,7 @@ export default function SetupPage() {
           fbTestEventCode: data.fbTestEventCode || '',
           fbAdsToken: data.hasFbAdsToken ? MASKED : '',
           fbAdAccountId: data.fbAdAccountId || '',
+          instanciasPermitidas: data.instanciasPermitidas ?? '1',
         }))
         setLoading(false)
       })
@@ -258,10 +261,32 @@ export default function SetupPage() {
             </div>
           </div>
 
-          {/* Facebook Conversions API */}
+          {/* Plano / Instâncias */}
           <div className="bg-white rounded-2xl p-6 shadow-xl">
             <h2 className="font-semibold text-gray-900 text-base mb-1 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">4</span>
+              Plano — Instâncias WhatsApp
+            </h2>
+            <p className="text-xs text-gray-400 mb-4 ml-8">Quantidade máxima de números que podem ser conectados neste sistema</p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Instâncias permitidas</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={form.instanciasPermitidas}
+                onChange={(e) => handleChange('instanciasPermitidas', e.target.value)}
+                className="w-32 px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              />
+              <p className="text-xs text-gray-400 mt-1">O cliente só poderá adicionar até esta quantidade de instâncias na aba Conexão</p>
+            </div>
+          </div>
+
+          {/* Facebook Conversions API */}
+          <div className="bg-white rounded-2xl p-6 shadow-xl">
+            <h2 className="font-semibold text-gray-900 text-base mb-1 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">5</span>
               Facebook Conversions API <span className="text-xs font-normal text-gray-400 ml-1">(opcional)</span>
             </h2>
             <p className="text-xs text-gray-400 mb-4 ml-8">Envia eventos de conversão ao mover clientes pelo Kanban</p>

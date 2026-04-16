@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen, TrendingUp, Users, Menu, X, Filter, Send, Bell } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, LogOut, Kanban, BookOpen, TrendingUp, Users, Menu, X, Filter, Send, Bell, Smartphone } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/ads', label: 'Ads', icon: TrendingUp },
   { href: '/treinamento', label: 'Treinamento', icon: BookOpen },
   { href: '/grupos', label: 'Grupos', icon: Users },
+  { href: '/conexao', label: 'Conexão', icon: Smartphone },
 ]
 
 export default function Sidebar() {

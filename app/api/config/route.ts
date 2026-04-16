@@ -17,6 +17,7 @@ export async function GET() {
     fbTestEventCode: config.fbTestEventCode,
     hasFbAdsToken: !!config.fbAdsToken,
     fbAdAccountId: config.fbAdAccountId,
+    instanciasPermitidas: config.instanciasPermitidas,
     configured: !!(config.supabaseUrl && config.supabaseAnonKey),
   })
 }
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
       fbTestEventCode: body.fbTestEventCode?.trim() || '',
       fbAdsToken: resolveSecret(body.fbAdsToken, current.fbAdsToken),
       fbAdAccountId: body.fbAdAccountId?.trim() || '',
+      instanciasPermitidas: body.instanciasPermitidas?.toString()?.trim() || '1',
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)

@@ -18,8 +18,17 @@ export async function GET() {
     .order('data_criacao', { ascending: true })
     .limit(2000)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!mensagens || mensagens.length === 0) return NextResponse.json([])
+  if (error) return NextResponse.json({ error: error.message, debug: 'erro na query' }, { status: 500 })
+  if (!mensagens || mensagens.length === 0) return NextResponse.json({ debug: 'nenhuma mensagem encontrada', total: 0, pares: [] })
+
+  // Debug: mostra amostra dos dados
+  const valoresQuemMandou = [...new Set(mensagens.map((m) => m.quem_mandou))]
+  const amostra = mensagens.slice(0, 5).map((m) => ({
+    numero_cliente: m.numero_cliente,
+    quem_mandou: m.quem_mandou,
+    tamanho: m.mensagem?.length,
+    data_criacao: m.data_criacao,
+  }))
 
   // Agrupa por numero_cliente
   const porCliente: Record<string, typeof mensagens> = {}
@@ -66,6 +75,16 @@ export async function GET() {
     vistos.add(chave)
     return true
   })
+
+  if (paresFiltrados.length === 0) {
+    return NextResponse.json({
+      debug: 'nenhum par encontrado',
+      total_mensagens: mensagens.length,
+      valores_quem_mandou: valoresQuemMandou,
+      amostra,
+      pares: [],
+    })
+  }
 
   return NextResponse.json(
     paresFiltrados.slice(0, 100).map(({ pergunta, resposta }) => ({ pergunta, resposta }))

@@ -52,7 +52,7 @@ export async function POST() {
     // Clientes no status alvo com dt_ultima_mensagem mais antiga que o limite
     const { data: clientes, error: errClientes } = await supabase
       .from('clientes')
-      .select('id, nome, telefone, cidade, dt_ultima_mensagem')
+      .select('id, nome, telefone, cidade, dt_ultima_mensagem, instancia_id')
       .eq('status_atual', regra.status_alvo)
       .not('telefone', 'is', null)
       .lt('dt_ultima_mensagem', limiteData.toISOString())
@@ -90,7 +90,25 @@ export async function POST() {
     let enviados = 0
     let erros = 0
 
+    // Cache de tokens por instancia_id
+    const tokenCache: Record<string, string> = {}
+
     for (const cliente of elegíveis) {
+
+      // Resolve token da instância do cliente
+      let tokenEnvio = uazapiToken
+      const instId = (cliente as { instancia_id?: string | null }).instancia_id
+      if (instId) {
+        if (!tokenCache[instId]) {
+          const { data: inst } = await supabase
+            .from('instancias_whatsapp')
+            .select('token')
+            .eq('id', instId)
+            .single()
+          if (inst?.token) tokenCache[instId] = inst.token
+        }
+        if (tokenCache[instId]) tokenEnvio = tokenCache[instId]
+      }
 
       // Seleciona mensagem aleatória se houver múltiplas variações
       let mensagemBase = regra.mensagem
@@ -113,7 +131,7 @@ export async function POST() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            token: uazapiToken,
+            token: tokenEnvio,
           },
           body: JSON.stringify({ number: cliente.telefone, text: texto }),
         })

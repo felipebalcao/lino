@@ -53,7 +53,7 @@ async function executarRegra(id: string) {
   // Ordena por dt_ultima_mensagem ascending (mais antigos primeiro)
   const { data: clientes, error: errClientes } = await supabase
     .from('clientes')
-    .select('id, nome, telefone, cidade, dt_ultima_mensagem')
+    .select('id, nome, telefone, cidade, dt_ultima_mensagem, instancia_id')
     .eq('status_atual', regra.status_alvo)
     .not('telefone', 'is', null)
     .lt('dt_ultima_mensagem', limiteData.toISOString())
@@ -103,8 +103,27 @@ async function executarRegra(id: string) {
   let erros = 0
   const intervaloMs = (regra.intervalo_segundos ?? 3) * 1000
 
+  // Cache de tokens por instancia_id
+  const tokenCache: Record<string, string> = {}
+
   for (let i = 0; i < clientesUnicos.length; i++) {
     const cliente = clientesUnicos[i]
+
+    // Resolve token da instância do cliente
+    let tokenEnvio = uazapiToken
+    const instId = (cliente as { instancia_id?: string | null }).instancia_id
+    if (instId) {
+      if (!tokenCache[instId]) {
+        const { data: inst } = await supabase
+          .from('instancias_whatsapp')
+          .select('token')
+          .eq('id', instId)
+          .single()
+        if (inst?.token) tokenCache[instId] = inst.token
+      }
+      if (tokenCache[instId]) tokenEnvio = tokenCache[instId]
+    }
+
     // Seleciona mensagem aleatória se houver múltiplas variações
     let mensagemBase = regra.mensagem
     let variacaoIdx = 0
@@ -124,7 +143,7 @@ async function executarRegra(id: string) {
     try {
       const resp = await fetch(`${uazapiBase}/send/text`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', token: uazapiToken },
+        headers: { 'Content-Type': 'application/json', token: tokenEnvio },
         body: JSON.stringify({ number: cliente.telefone, text: texto }),
       })
 

@@ -360,6 +360,45 @@ export default function KanbanPage() {
                 </div>
               )
             })}
+            {/* Coluna de clientes sem status ou com status não mapeado */}
+            {(() => {
+              const keysConhecidas = new Set(STATUS_LIST.map((s) => s.key))
+              const semStatus = Object.entries(clientesPorStatus)
+                .filter(([key]) => !keysConhecidas.has(key))
+                .flatMap(([, lista]) => lista)
+              if (semStatus.length === 0) return null
+              return (
+                <div className="flex flex-col w-72 shrink-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-3 h-3 rounded-full shrink-0 bg-gray-400" />
+                    <span className="font-semibold text-gray-800 text-sm">Sem Status</span>
+                    <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">
+                      {semStatus.length}
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full mb-2 bg-gray-400" />
+                  <div
+                    className="flex-1 rounded-xl p-2 space-y-2 overflow-y-auto bg-gray-100 border-2 border-transparent"
+                    style={{ minHeight: '200px', maxHeight: 'calc(100vh - 240px)' }}
+                  >
+                    {semStatus.map((cliente) => (
+                      <div
+                        key={cliente.id}
+                        className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar nome={cliente.nome} foto={cliente.foto} size="sm" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{cliente.nome}</p>
+                            <p className="text-xs text-gray-400 truncate">{cliente.status_atual || 'sem status'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

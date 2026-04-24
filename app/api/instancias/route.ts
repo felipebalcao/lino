@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   // Verifica limite de instâncias
   const config = await readConfig()
-  const limite = parseInt((config as Record<string, string>).instancias_permitidas ?? '1', 10) || 1
+  const limite = parseInt(config.instanciasPermitidas ?? '1', 10) || 1
 
   const { count } = await supabase
     .from('instancias_whatsapp')

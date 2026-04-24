@@ -9,6 +9,4 @@ export const STATUS_LIST = [
   { key: 'reclamacao', label: 'Reclamação', cor: '#dc2626' },
   { key: 'cliente_perdido', label: 'Cliente Perdido', cor: '#64748b' },
   { key: 'concluido', label: 'Concluído', cor: '#22c55e' },
-] as const
-
-export type StatusKey = typeof STATUS_LIST[number]['key']
+]

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Bell, CheckCircle, AlertCircle, Copy, Play, ChevronDown, ChevronUp, Pencil, X } from 'lucide-react'
+import { STATUS_LIST } from '@/constants/status'
 
 interface Regra {
   id: string
@@ -17,18 +18,6 @@ interface Regra {
   created_at: string
 }
 
-const STATUS_OPCOES = [
-  'novo_lead',
-  'em_atendimento',
-  'aguardando_cliente',
-  'orcamento_enviado',
-  'negociando',
-  'intencao_compra',
-  'pagamento_pendente',
-  'compra_realizada',
-  'pos_venda',
-  'inativo',
-]
 
 function formatarWhatsApp(texto: string): string {
   return texto
@@ -54,7 +43,7 @@ export default function RemarketingPage() {
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
 
   // Form nova regra
-  const [statusAlvo, setStatusAlvo] = useState(STATUS_OPCOES[0])
+  const [statusAlvo, setStatusAlvo] = useState(STATUS_LIST[0].key)
   const [tempoHoras, setTempoHoras] = useState(24)
   const [limite, setLimite] = useState<number | ''>(10)
   const [intervaloSegundos, setIntervaloSegundos] = useState<number>(3)
@@ -277,8 +266,8 @@ export default function RemarketingPage() {
                 onChange={(e) => setStatusAlvo(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                {STATUS_OPCOES.map((s) => (
-                  <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                {STATUS_LIST.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
                 ))}
               </select>
             </div>
@@ -484,7 +473,7 @@ export default function RemarketingPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                      {regra.status_alvo.replace(/_/g, ' ')}
+                      {STATUS_LIST.find((s) => s.key === regra.status_alvo)?.label ?? regra.status_alvo}
                     </span>
                     <span className="text-xs text-gray-500">
                       parado por <strong>{regra.tempo_horas}h</strong>
@@ -671,8 +660,8 @@ export default function RemarketingPage() {
                     onChange={(e) => setEditando({ ...editando, status_alvo: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
-                    {STATUS_OPCOES.map((s) => (
-                      <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                    {STATUS_LIST.map((s) => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
                     ))}
                   </select>
                 </div>

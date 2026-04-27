@@ -10,8 +10,7 @@ function getSupabase() {
 
 function dentroDoHorario(horaInicio: string | null, horaFim: string | null): boolean {
   if (!horaInicio || !horaFim) return true
-  const agora = new Date()
-  const atual = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`
+  const atual = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
   if (horaInicio <= horaFim) return atual >= horaInicio && atual <= horaFim
   return atual >= horaInicio || atual <= horaFim
 }

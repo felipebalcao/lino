@@ -130,18 +130,29 @@ async function executarRegra(id: string) {
         body: JSON.stringify({ number: cliente.telefone, text: texto }),
       })
 
+      const httpStatus = resp.status
+      const respBody = await resp.json().catch(() => ({}))
+
       if (resp.ok) {
         await Promise.all([
-          supabase.from('remarketing_logs').insert({ regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx }),
-          supabase.from('clientes')
-            .update({ status_atual: 'remarketing' })
-            .eq('id', cliente.id),
+          supabase.from('remarketing_logs').insert({
+            regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx, http_status: httpStatus,
+          }),
+          supabase.from('clientes').update({ status_atual: 'remarketing' }).eq('id', cliente.id),
         ])
         enviados++
       } else {
+        await supabase.from('remarketing_logs').insert({
+          regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx,
+          http_status: httpStatus, erro: JSON.stringify(respBody),
+        })
         erros++
       }
-    } catch {
+    } catch (e) {
+      await supabase.from('remarketing_logs').insert({
+        regra_id: regra.id, telefone: cliente.telefone, variacao: variacaoIdx,
+        http_status: null, erro: e instanceof Error ? e.message : 'Erro desconhecido',
+      })
       erros++
     }
 

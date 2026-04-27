@@ -27,7 +27,7 @@ function formatarWhatsApp(texto: string): string {
 }
 
 export default function RemarketingPage() {
-  interface LogEntry { telefone: string; nome: string | null; enviado_em: string; variacao: number | null }
+  interface LogEntry { telefone: string; nome: string | null; enviado_em: string; variacao: number | null; http_status: number | null; erro: string | null }
 
   const [regras, setRegras] = useState<Regra[]>([])
   const [loading, setLoading] = useState(true)
@@ -565,6 +565,7 @@ export default function RemarketingPage() {
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Nome</th>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Telefone</th>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Variação</th>
+                              <th className="text-left px-4 py-2 font-medium text-gray-500">Status</th>
                               <th className="text-left px-4 py-2 font-medium text-gray-500">Enviado em</th>
                             </tr>
                           </thead>
@@ -575,6 +576,21 @@ export default function RemarketingPage() {
                                 <td className="px-4 py-2 text-gray-500">{log.telefone}</td>
                                 <td className="px-4 py-2 text-gray-400">
                                   {log.variacao != null ? `#${log.variacao + 1}` : '—'}
+                                </td>
+                                <td className="px-4 py-2">
+                                  {log.http_status != null ? (
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
+                                      log.http_status >= 200 && log.http_status < 300
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-600'
+                                    }`} title={log.erro ?? undefined}>
+                                      {log.http_status}
+                                    </span>
+                                  ) : log.erro ? (
+                                    <span className="text-red-400" title={log.erro}>erro</span>
+                                  ) : (
+                                    <span className="text-gray-300">—</span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-2 text-gray-400">
                                   {new Date(log.enviado_em).toLocaleString('pt-BR', {

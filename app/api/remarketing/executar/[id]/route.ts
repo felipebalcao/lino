@@ -103,26 +103,9 @@ async function executarRegra(id: string) {
   let erros = 0
   const intervaloMs = (regra.intervalo_segundos ?? 3) * 1000
 
-  // Cache de tokens por instancia_id
-  const tokenCache: Record<string, string> = {}
-
   for (let i = 0; i < clientesUnicos.length; i++) {
     const cliente = clientesUnicos[i]
-
-    // Resolve token da instância do cliente
-    let tokenEnvio = uazapiToken
-    const instId = (cliente as { instancia_id?: string | null }).instancia_id
-    if (instId) {
-      if (!tokenCache[instId]) {
-        const { data: inst } = await supabase
-          .from('instancias_whatsapp')
-          .select('token')
-          .eq('id', instId)
-          .single()
-        if (inst?.token) tokenCache[instId] = inst.token
-      }
-      if (tokenCache[instId]) tokenEnvio = tokenCache[instId]
-    }
+    const tokenEnvio = (cliente as { instancia_id?: string | null }).instancia_id || uazapiToken
 
     // Seleciona mensagem aleatória se houver múltiplas variações
     let mensagemBase = regra.mensagem

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { getTodosClientesComContagem } from '@/services/clientesService'
 import { Cliente } from '@/types'
 import Avatar from '@/components/Avatar'
-import { Search, Users, ArrowUpDown, MessageSquare } from 'lucide-react'
+import { Search, Users, ArrowUpDown, MessageSquare, Download } from 'lucide-react'
 import { STATUS_LIST } from '@/constants/status'
 
 type ClienteComContagem = Cliente & { total_mensagens: number }
@@ -50,6 +50,28 @@ export default function ClientesPage() {
     setOrdem(col)
   }
 
+  function baixarCSV() {
+    const cabecalho = ['Nome', 'Telefone', 'Cidade', 'Status', 'Mensagens', 'Cadastrado em']
+    const linhas = filtrados.map((c) => [
+      c.nome ?? '',
+      c.telefone ?? '',
+      c.cidade ?? '',
+      c.status_atual ? (statusMap[c.status_atual]?.label ?? c.status_atual) : '',
+      String(c.total_mensagens),
+      formatarData(c.created_at),
+    ])
+    const csv = [cabecalho, ...linhas]
+      .map((row) => row.map((v) => `"${v.replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `clientes_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -69,6 +91,13 @@ export default function ClientesPage() {
             </h1>
             <p className="text-gray-500 text-sm mt-0.5">{filtrados.length} de {clientes.length} clientes</p>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={baixarCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Download size={15} /> Exportar CSV
+            </button>
           <div className="relative w-72">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -78,6 +107,7 @@ export default function ClientesPage() {
               onChange={(e) => setBusca(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
             />
+          </div>
           </div>
         </div>
       </div>

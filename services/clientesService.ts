@@ -103,6 +103,43 @@ export async function getContagemPorStatusAtual(): Promise<{ status: string; tot
     .sort((a, b) => b.total - a.total)
 }
 
+export async function getTodosClientesComContagem(): Promise<(Cliente & { total_mensagens: number })[]> {
+  const { data: todos, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  if (!todos?.length) return []
+
+  const unicosPorTelefone: Record<string, Cliente> = {}
+  for (const c of todos as Cliente[]) {
+    if (!c.telefone) continue
+    if (!unicosPorTelefone[c.telefone] || c.id > unicosPorTelefone[c.telefone].id) {
+      unicosPorTelefone[c.telefone] = c
+    }
+  }
+  const clientes = Object.values(unicosPorTelefone)
+  const telefones = clientes.map((c) => c.telefone)
+  const telefonesComSufixo = telefones.flatMap((t) => [t, `${t}@s.whatsapp.net`])
+
+  const { data: msgs } = await supabase
+    .from('mensagens_whatsapp')
+    .select('numero_cliente')
+    .in('numero_cliente', telefonesComSufixo)
+
+  const contagemPorTelefone: Record<string, number> = {}
+  for (const msg of msgs ?? []) {
+    const tel = msg.numero_cliente.split('@')[0]
+    contagemPorTelefone[tel] = (contagemPorTelefone[tel] ?? 0) + 1
+  }
+
+  return clientes.map((c) => ({
+    ...c,
+    total_mensagens: contagemPorTelefone[c.telefone] ?? 0,
+  }))
+}
+
 export async function getClientesComUltimaMensagem(): Promise<ClienteComUltimaMensagem[]> {
   const { data, error } = await supabase
     .from('clientes')
